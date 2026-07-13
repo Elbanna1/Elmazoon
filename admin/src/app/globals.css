@@ -1,0 +1,193 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/**
+ * Bind `dark:` to a `.dark` ancestor rather than to the OS preference.
+ *
+ * The vendored shadcn primitives are peppered with `dark:` utilities. Left on
+ * Tailwind's default, those compile to `@media (prefers-color-scheme: dark)` and
+ * would fire on any machine set to dark — recolouring inputs and buttons on a
+ * panel that has no dark theme, against a public site that has none either.
+ *
+ * Nothing ever adds `.dark` to this document, so the variant is inert and the
+ * admin stays light everywhere, exactly like almaazoon.com.
+ */
+@custom-variant dark (&:is(.dark *));
+
+/**
+ * The admin panel wears the public site's skin.
+ *
+ * Every value below is lifted verbatim from `frontend/tailwind.config.js` — the
+ * same paper, ink and gold, the same radii, the same layered shadows, the same
+ * Arabic face. The shadcn primitives are then remapped onto those tokens, so a
+ * <Button> or <Card> in here renders as the site's button and the site's card
+ * without touching a single component file.
+ *
+ * There is deliberately no dark theme. The public site has none, and an admin
+ * that goes dark stops looking like the site it administers.
+ */
+
+@theme inline {
+  --font-sans: var(--font-arabic), system-ui, sans-serif;
+
+  /* Surfaces */
+  --color-paper: #fbfaf8;
+  --color-surface: #ffffff;
+
+  /* Ink — text and neutral chrome */
+  --color-ink: #0b0b0c;
+  --color-ink-900: #0b0b0c;
+  --color-ink-800: #1c1b19;
+  --color-ink-700: #2e2c29;
+  --color-ink-600: #45423d;
+  --color-ink-500: #6b6862;
+  --color-ink-400: #8c8880;
+  --color-ink-300: #b3aea5;
+  --color-ink-200: #d6d1c8;
+  --color-ink-100: #e8e4dd;
+  --color-ink-50: #f4f2ee;
+
+  /* Gold — the one accent, reserved for the primary action */
+  --color-gold: #a67c3d;
+  --color-gold-700: #7a5a2b;
+  --color-gold-600: #8f6b33;
+  --color-gold-500: #a67c3d;
+  --color-gold-400: #be9455;
+  --color-gold-300: #d4b27e;
+  --color-gold-200: #e6d2b0;
+  --color-gold-100: #f2e7d3;
+  --color-gold-50: #faf5eb;
+
+  --color-success: #1f6f43;
+  --color-danger: #9b2c2c;
+
+  /* shadcn's semantic tokens, remapped onto the above. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+
+  /* Same scale as the site: --radius 0.625rem makes 2xl land on 1.125rem,
+     which is the radius every card on the public site uses. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.4);
+
+  /* Layered, low-opacity. A single hard shadow reads as "template". */
+  --shadow-subtle: 0 1px 2px rgba(11, 11, 12, 0.04), 0 1px 1px rgba(11, 11, 12, 0.03);
+  --shadow-card: 0 1px 2px rgba(11, 11, 12, 0.04), 0 8px 24px -12px rgba(11, 11, 12, 0.1);
+  --shadow-lift: 0 2px 4px rgba(11, 11, 12, 0.04), 0 16px 40px -16px rgba(11, 11, 12, 0.16);
+
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: #fbfaf8; /* paper */
+  --foreground: #0b0b0c; /* ink-900 */
+
+  --card: #ffffff;
+  --card-foreground: #0b0b0c;
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0c;
+
+  /* Gold is the primary action, exactly as on the site. */
+  --primary: #a67c3d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f2ee; /* ink-50 */
+  --secondary-foreground: #1c1b19;
+
+  --muted: #f4f2ee;
+  --muted-foreground: #6b6862; /* ink-500 */
+
+  --accent: #faf5eb; /* gold-50 */
+  --accent-foreground: #7a5a2b; /* gold-700 */
+
+  --destructive: #9b2c2c;
+  --destructive-foreground: #ffffff;
+
+  --border: #e8e4dd; /* ink-100 */
+  --input: #e8e4dd;
+  --ring: #a67c3d;
+
+  --chart-1: #a67c3d;
+  --chart-2: #be9455;
+  --chart-3: #d4b27e;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "kern", "liga";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Arabic headings sit tighter and darker than body copy. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold text-ink-900;
+    line-height: 1.35;
+  }
+
+  /* One focus treatment for the whole product, keyboard-only. */
+  :focus-visible {
+    @apply rounded-md outline-none ring-2 ring-gold-500 ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    @apply bg-gold-100 text-ink-900;
+  }
+
+  /* Latin numerals inside RTL text (counts, dates) must not flip. */
+  .ltr-nums {
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+  }
+}
+
+/* Every animation here is decorative, so it is safe to disable all of them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
