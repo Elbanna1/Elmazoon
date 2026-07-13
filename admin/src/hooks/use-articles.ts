@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { qk } from "@/lib/query-keys";
 import type { ApiError } from "@/lib/errors";
+import { revalidatePublicSite } from "@/lib/revalidate";
 import { articlesService, type ArticleListParams } from "@/services/articles.service";
 import type { ArticleDto, ArticleFormValues, Paged } from "@/types/api";
 
@@ -34,6 +35,10 @@ export function useCreateArticle() {
       toast.success("تم نشر الفتوى.");
       queryClient.invalidateQueries({ queryKey: qk.articles.all });
       queryClient.invalidateQueries({ queryKey: qk.dashboard.all });
+      // The admin's own cache is not the one the public reads from. Without this
+      // the new fatwa does not appear on almaazoon.com until its ISR timer
+      // expires — up to five minutes of the site looking broken.
+      revalidatePublicSite();
       router.push("/admin/articles");
     },
     onError: (error: ApiError) => {
@@ -55,6 +60,8 @@ export function useUpdateArticle(id: string) {
       queryClient.invalidateQueries({ queryKey: qk.articles.all });
       queryClient.invalidateQueries({ queryKey: qk.articles.detail(id) });
       queryClient.invalidateQueries({ queryKey: qk.dashboard.all });
+      // The edited fatwa's own page, plus the list it appears on.
+      revalidatePublicSite(id);
       router.push("/admin/articles");
     },
     onError: (error: ApiError) => {
@@ -90,8 +97,12 @@ export function useDeleteArticle(params: ArticleListParams) {
       });
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       toast.success("تم حذف الفتوى.");
+      // A deleted fatwa must stop being served publicly at once — the stale page
+      // is the one case where waiting for the ISR timer shows content that is
+      // meant to be gone.
+      revalidatePublicSite(id);
     },
 
     onSettled: () => {

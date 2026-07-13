@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { compressImage } from "@/lib/compress-image";
 import { UPLOAD_TIMEOUT_MS } from "@/lib/config";
 import { endpoints } from "@/services/endpoints";
 import type {
@@ -19,15 +20,25 @@ export interface ArticleListParams {
  * Create and update are `multipart/form-data`, not JSON — the OpenAPI document is
  * explicit, and the fields are `title`, `content`, `image`, `removeImage`.
  * A JSON body here is rejected with a 400.
+ *
+ * The image is downscaled and re-encoded on the way through. Upload bytes are the
+ * entire cost of publishing — see `lib/compress-image.ts` for the measurements —
+ * and this is the one place every create and update passes through, so it is the
+ * one place that has to do it.
  */
-function toFormData({ title, content, image, removeImage }: ArticleFormValues): FormData {
+async function toFormData({
+  title,
+  content,
+  image,
+  removeImage,
+}: ArticleFormValues): Promise<FormData> {
   const body = new FormData();
   body.append("title", title.trim());
   body.append("content", content.trim());
 
   // Appending a null/undefined file sends the literal string "null" and the
   // server stores it as a filename. Only append a real File.
-  if (image instanceof File) body.append("image", image);
+  if (image instanceof File) body.append("image", await compressImage(image));
   if (removeImage) body.append("removeImage", "true");
 
   return body;
@@ -62,13 +73,13 @@ export const articlesService = {
   },
 
   async create(values: ArticleFormValues): Promise<void> {
-    await api.post(endpoints.articles.create, toFormData(values), {
+    await api.post(endpoints.articles.create, await toFormData(values), {
       timeout: UPLOAD_TIMEOUT_MS,
     });
   },
 
   async update(id: string, values: ArticleFormValues): Promise<void> {
-    await api.put(endpoints.articles.update(id), toFormData(values), {
+    await api.put(endpoints.articles.update(id), await toFormData(values), {
       timeout: UPLOAD_TIMEOUT_MS,
     });
   },

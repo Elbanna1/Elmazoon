@@ -5,6 +5,7 @@ import { keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { qk } from "@/lib/query-keys";
 import type { ApiError } from "@/lib/errors";
+import { revalidatePublicSite } from "@/lib/revalidate";
 import { questionsService, type QuestionListParams } from "@/services/questions.service";
 import type { Paged, QuestionDto } from "@/types/api";
 
@@ -49,6 +50,9 @@ export function useAnswerQuestion(params: QuestionListParams) {
 
     onSuccess: () => {
       toast.success("تم نشر الرد.");
+      // /questions is statically generated with a 60s timer. Push the answer
+      // through now rather than letting the asker refresh into the old page.
+      revalidatePublicSite();
     },
 
     onSettled: () => {
@@ -92,6 +96,7 @@ export function useDeleteQuestion(params: QuestionListParams) {
 
     onSuccess: () => {
       toast.success("تم حذف السؤال.");
+      revalidatePublicSite();
     },
 
     onSettled: () => {

@@ -148,7 +148,10 @@ export default function CommentsPage() {
         loading={reply.isPending}
         onSubmit={(value) => {
           if (!replying) return;
-          reply.mutate({ id: replying._id, reply: value }, { onSuccess: () => setReplying(null) });
+          reply.mutate(
+            { id: replying._id, reply: value, articleId: replying.articleId },
+            { onSuccess: () => setReplying(null) },
+          );
         }}
       />
 
@@ -162,7 +165,10 @@ export default function CommentsPage() {
         loading={remove.isPending}
         onConfirm={() => {
           if (!deleting) return;
-          remove.mutate(deleting._id, { onSettled: () => setDeleting(null) });
+          remove.mutate(
+            { id: deleting._id, articleId: deleting.articleId },
+            { onSettled: () => setDeleting(null) },
+          );
         }}
       />
     </>
