@@ -4,15 +4,30 @@ import { API_BASE_URL } from './config';
 /**
  * Single HTTP client for the whole app.
  *
- * The baseURL used to be `process.env.server`, injected by next.config.js, which
- * meant the origin depended on the build phase: localhost:5000 in dev, a plain
- * HTTP DigitalOcean IP in production. It now comes from one config module and
- * points at one backend.
+ * The baseURL depends on *who is calling*, and this is the whole fix for the
+ * "تعذّر الوصول إلى الخادم" failures in production:
+ *
+ *  - **In the browser** it points at this app's own origin (`/api/bff`), which
+ *    proxies to the API server-side. The API's CORS allow-list contains
+ *    `almaazoon.com` and `localhost:3000` and nothing else, so a direct call from
+ *    `elmazoon.vercel.app` was blocked by the browser before it left — axios saw
+ *    no response, and the visitor saw "تعذّر الوصول إلى الخادم". Same-origin
+ *    requests are not subject to CORS at all, so this works from any deployment
+ *    URL, including per-commit preview builds that could never be allow-listed.
+ *
+ *  - **On the server** (getStaticProps, getServerSideProps, the sitemap and RSS
+ *    feed) it points straight at the API. There is no CORS between two servers,
+ *    and a relative URL has no meaning to Node.
+ *
+ * Both paths still resolve to the same `API_BASE_URL` — the promise that changing
+ * `NEXT_PUBLIC_API_URL` repoints the whole site is unchanged.
  */
+const isBrowser = typeof window !== 'undefined';
+
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: isBrowser ? '/api/bff' : API_BASE_URL,
   // Without this a hung backend leaves the UI spinning forever.
-  timeout: 12000,
+  timeout: 20000,
   // The visitor's identity is an HttpOnly `visitor_id` cookie that the server
   // sets and resolves itself. Without credentials the cookie never travels, and
   // `/api/questions/my` and `/api/notifications/my` come back empty forever —
@@ -46,6 +61,10 @@ export const endpoints = {
   myNotificationsRead: '/api/notifications/my/read',
 
   visit: '/api/analytics/visit',
+
+  // Called only from `pages/api/revalidate.js`, server-side, to ask the backend
+  // whether the caller is really the admin before honouring a revalidation.
+  checkAuth: '/api/admin/check-authentication',
 };
 
 /**

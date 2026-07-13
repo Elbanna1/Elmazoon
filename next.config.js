@@ -42,25 +42,63 @@ const securityHeaders = [
 
 /**
  * The admin dashboard is a second, separate Next application (`admin/`), and this
- * app is the zone host in front of it — Next's Multi-Zones pattern.
+ * app is the zone host in front of it — Next's Multi-Zones pattern. The admin owns
+ * every `/admin/*` route; this config forwards them, so one origin serves both.
  *
- * Without this, `/admin` on this origin is simply not a route here, so it falls
- * through to the public 404. The admin app owns every `/admin/*` route; this
- * config forwards them to it, so one origin serves both apps.
+ * Locally the zone is the admin's dev server on 127.0.0.1:3001 (not `localhost` —
+ * on Windows that resolves to the IPv6 loopback `::1` first, and if the admin is
+ * listening on IPv4 only, every proxied request dies with `ECONNREFUSED ::1:3001`).
  *
- * In production point ADMIN_ZONE_URL at the admin deployment. Locally it is the
- * admin app's dev server — which must be running, or `/admin` will 502.
+ * In production ADMIN_ZONE_URL **must** be set to the admin's own deployment URL.
+ * The loopback default must never survive into a deployed build: Vercel resolves
+ * the rewrite destination itself, sees a private address, and refuses it with
+ * `X-Vercel-Error: DNS_HOSTNAME_RESOLVED_PRIVATE` — a 404 whose cause is invisible
+ * from the outside. That is exactly the failure this guard exists to prevent.
  */
+const IS_PRODUCTION_BUILD = process.env.NODE_ENV === 'production';
+
+const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)(:\d+)?$/i;
+const PRIVATE_NET = /^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
+
+const RAW_ADMIN_ZONE_URL = process.env.ADMIN_ZONE_URL || '';
+
 /**
- * 127.0.0.1, not `localhost`.
+ * Resolve the zone, or resolve to nothing.
  *
- * On Windows `localhost` resolves to the IPv6 loopback `::1` first. If the admin
- * app happens to be listening on IPv4 only, every proxied request dies with
- * `ECONNREFUSED ::1:3001` — which surfaces as a bare 500 on /admin/* and gives no
- * hint that the address family is the problem. Naming the IPv4 loopback outright
- * removes the ambiguity.
+ * If this returns null the /admin rewrites are omitted entirely, and `/admin`
+ * falls through to the public 404. A clean "not found" is a far better failure
+ * than a rewrite pointing somewhere unreachable — the public site keeps working
+ * either way, and the build says out loud what is wrong.
  */
-const ADMIN_ZONE_URL = process.env.ADMIN_ZONE_URL || 'http://127.0.0.1:3001';
+function resolveAdminZone() {
+  const isPrivate = (url) => LOOPBACK.test(url) || PRIVATE_NET.test(url);
+
+  if (!IS_PRODUCTION_BUILD) {
+    return RAW_ADMIN_ZONE_URL || 'http://127.0.0.1:3001';
+  }
+
+  if (!RAW_ADMIN_ZONE_URL) {
+    console.warn(
+      '\n[zones] ADMIN_ZONE_URL is not set. The /admin routes will NOT be proxied,\n' +
+        '        and /admin will 404. Set it to the admin app\'s deployment URL\n' +
+        '        (e.g. https://elmazoon-admin.vercel.app) and redeploy.\n',
+    );
+    return null;
+  }
+
+  if (isPrivate(RAW_ADMIN_ZONE_URL)) {
+    console.warn(
+      `\n[zones] ADMIN_ZONE_URL is a private address (${RAW_ADMIN_ZONE_URL}).\n` +
+        '        A hosting platform cannot reach it, so the /admin rewrites are\n' +
+        '        being omitted rather than shipped broken. Point it at a public URL.\n',
+    );
+    return null;
+  }
+
+  return RAW_ADMIN_ZONE_URL;
+}
+
+const ADMIN_ZONE_URL = resolveAdminZone();
 
 const nextConfig = {
   reactStrictMode: true,
@@ -73,6 +111,10 @@ const nextConfig = {
   },
 
   async rewrites() {
+    // No reachable zone: ship no /admin rewrites at all. `/admin` then 404s
+    // cleanly instead of pointing at an address the platform will reject.
+    if (!ADMIN_ZONE_URL) return [];
+
     return [
       // The admin's pages.
       { source: '/admin', destination: `${ADMIN_ZONE_URL}/admin` },
