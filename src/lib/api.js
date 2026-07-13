@@ -79,9 +79,27 @@ export const endpoints = {
  * Both fields are nullable — an article legitimately has no image — so callers
  * must render a placeholder for null rather than an empty <img>.
  */
+/**
+ * Force https on an upload URL.
+ *
+ * The backend derives `imageUrl`'s scheme from the incoming request and does not
+ * always resolve it to https — verified: articles published through one path come
+ * back `https://…`, others `http://…`. An `http://` image on an https page is two
+ * separate failures at once: the browser blocks it as mixed content, and
+ * `next/image` rejects it outright because `remotePatterns` allow only https for
+ * that host — and that rejection happens *during render*, so one bad image takes
+ * the whole page down rather than just itself.
+ *
+ * The https variant of the same URL serves correctly (verified 200), so upgrading
+ * is safe and lossless.
+ */
+function secure(url) {
+  return url.startsWith('http://') ? `https://${url.slice('http://'.length)}` : url;
+}
+
 export function articleImage(article) {
   if (!article) return null;
-  if (article.imageUrl) return article.imageUrl;
+  if (article.imageUrl) return secure(article.imageUrl);
   if (article.image) return `${API_BASE_URL}/uploads/${article.image}`;
   return null;
 }
@@ -89,15 +107,37 @@ export function articleImage(article) {
 /** Kept for callers that already hold a bare filename or an absolute URL. */
 export function uploadUrl(value) {
   if (!value) return null;
-  if (/^https?:\/\//i.test(value)) return value;
+  if (/^https?:\/\//i.test(value)) return secure(value);
   return `${API_BASE_URL}/uploads/${value}`;
 }
 
 /** Turns any axios failure into a short Arabic message we can show a user. */
 export function toMessage(error, fallback = 'حدث خطأ غير متوقع. برجاء المحاولة مرة أخرى.') {
   if (error?.code === 'ECONNABORTED') return 'انتهت مهلة الاتصال بالخادم. تحقّق من اتصالك بالإنترنت.';
-  if (error?.response?.status === 401) return 'انتهت صلاحية الجلسة. برجاء تسجيل الدخول من جديد.';
-  if (error?.response?.status === 404) return 'العنصر المطلوب غير موجود.';
   if (!error?.response) return 'تعذّر الوصول إلى الخادم.';
-  return error.response?.data?.message || fallback;
+
+  const { status, data } = error.response;
+
+  // The API answers 4xx/5xx with RFC-7807 ProblemDetails (`detail`), but a few
+  // routes answer with `{message}` instead. Reading only one of the two threw the
+  // server's own explanation away and left the user with a generic error.
+  const serverSaid = data?.detail || data?.title || data?.message || null;
+
+  switch (status) {
+    case 401:
+      return 'انتهت صلاحية الجلسة. برجاء تسجيل الدخول من جديد.';
+    case 404:
+      return 'العنصر المطلوب غير موجود.';
+    case 429:
+      // The backend rate-limits submissions. Without this the visitor saw only
+      // "حدث خطأ غير متوقع" and simply pressed the button again, which is exactly
+      // the behaviour the limiter is there to stop.
+      return 'لقد أرسلت طلبات كثيرة في وقت قصير. انتظر قليلًا ثم حاول مرة أخرى.';
+    case 502:
+      // Our own proxy could not reach the API.
+      return 'تعذّر الوصول إلى الخادم. برجاء المحاولة بعد قليل.';
+    default:
+      if (status >= 500) return 'حدث خطأ في الخادم. برجاء المحاولة بعد قليل.';
+      return serverSaid || fallback;
+  }
 }

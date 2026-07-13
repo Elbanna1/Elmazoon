@@ -1,10 +1,24 @@
 /**
  * A published question and, if it exists, the Ma'zoun's answer.
  *
- * `createdAt` arrives from the backend already formatted as `dd/mm/yyyy hh:mm:ss`
- * by a Mongoose getter, so it is rendered as-is — reformatting it here would
- * mean parsing a non-ISO string, and the backend contract is not ours to change.
+ * `createdAt` used to arrive pre-formatted as `dd/mm/yyyy` from the old Node
+ * backend, so it was rendered as-is. The current backend returns a raw ISO
+ * timestamp, and rendering *that* as-is put `2026-07-13T11:24:58.4342589` on the
+ * page in front of visitors. It is formatted here now.
  */
+
+/** The date, or nothing. Never a raw timestamp. */
+function formatDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 export default function QuestionCard({
   question,
   commenter,
@@ -18,6 +32,7 @@ export default function QuestionCard({
 }) {
   const initial = (commenter || '؟').trim().charAt(0);
   const answered = Boolean(response);
+  const asked = formatDate(commentedAt);
 
   return (
     <article
@@ -37,9 +52,11 @@ export default function QuestionCard({
             {commenter}
             {mine && <span className="ms-2 text-xs font-normal text-gold-700">(سؤالك)</span>}
           </p>
-          {commentedAt && (
+          {asked && (
             <p className="mt-0.5 text-xs text-ink-400">
-              <span className="ltr-nums">{commentedAt}</span>
+              <time dateTime={commentedAt} className="ltr-nums">
+                {asked}
+              </time>
             </p>
           )}
         </div>
@@ -62,7 +79,7 @@ export default function QuestionCard({
         </div>
       </header>
 
-      <p className="mt-4 whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-800">
+      <p className="ugc mt-4 whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-800">
         <Highlight text={question} query={highlight} />
       </p>
 
@@ -71,7 +88,7 @@ export default function QuestionCard({
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-gold-700">
             رد المأذون
           </p>
-          <p className="whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
+          <p className="ugc whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
             <Highlight text={response} query={highlight} />
           </p>
         </div>

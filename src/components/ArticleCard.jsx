@@ -54,12 +54,12 @@ export default function ArticleCard({
         </div>
 
         <div className="p-5">
-          <Heading className="line-clamp-2 text-[1.0625rem] font-semibold leading-snug text-ink-900 transition-colors duration-200 group-hover:text-gold-700">
+          <Heading className="ugc line-clamp-2 text-[1.0625rem] font-semibold leading-snug text-ink-900 transition-colors duration-200 group-hover:text-gold-700">
             {title}
           </Heading>
           {/* The old excerpt was `content.substring(0, 20)` — twenty characters,
               with an ellipsis appended even when nothing was truncated. */}
-          <p className="mt-2.5 line-clamp-3 text-sm leading-[1.9] text-ink-500">{excerpt}</p>
+          <p className="ugc mt-2.5 line-clamp-3 text-sm leading-[1.9] text-ink-500">{excerpt}</p>
 
           <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gold-600">
             اقرأ الفتوى

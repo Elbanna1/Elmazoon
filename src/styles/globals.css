@@ -42,6 +42,28 @@
     direction: ltr;
     unicode-bidi: isolate;
     display: inline-block;
+    /* Even a "number" can arrive long and unbroken. Never let one set the page's
+       minimum width. */
+    overflow-wrap: anywhere;
+  }
+
+  /**
+   * Anything a visitor typed: a question, an answer, a comment, an article body.
+   *
+   * `overflow-wrap: anywhere` rather than Tailwind's `break-words`
+   * (`overflow-wrap: break-word`). The difference is the one that matters here:
+   * only `anywhere` reduces the element's **intrinsic min-content width**, and it
+   * is the min-content width that a block's ancestors use to decide how narrow the
+   * page is allowed to get.
+   *
+   * Without it, a single long unbroken token — a pasted URL, a keyboard mash —
+   * gives the paragraph a 477px minimum, which forced the whole document to ~511px
+   * and pushed the layout sideways on every phone. `break-word` would have wrapped
+   * the glyphs but left that 477px floor in place, so the page would still have
+   * scrolled horizontally.
+   */
+  .ugc {
+    overflow-wrap: anywhere;
   }
 }
 

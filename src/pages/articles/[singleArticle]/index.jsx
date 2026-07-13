@@ -177,7 +177,7 @@ export default function ArticlePage({ article, related = [], prev, next, error }
 
           <article ref={articleRef}>
             <header>
-              <h1 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-ink-900 sm:text-4xl">
+              <h1 className="ugc text-balance text-3xl font-semibold leading-tight tracking-tight text-ink-900 sm:text-4xl">
                 {article.title}
               </h1>
               <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-400">
@@ -234,7 +234,7 @@ export default function ArticlePage({ article, related = [], prev, next, error }
             {/* max-w-prose keeps the measure readable — Arabic body text past
                 ~70 characters per line becomes hard to track. */}
             <div className="mt-10 max-w-prose">
-              <p className="whitespace-pre-line text-[1.0625rem] leading-[2.1] text-ink-700">
+              <p className="ugc whitespace-pre-line text-[1.0625rem] leading-[2.1] text-ink-700">
                 {article.content}
               </p>
             </div>
@@ -418,7 +418,7 @@ function PrevNext({ prev, next }) {
           className="group flex flex-col rounded-2xl border border-ink-100 bg-surface p-5 transition-shadow duration-300 ease-premium hover:shadow-card"
         >
           <span className="text-xs font-medium text-ink-400">الفتوى السابقة</span>
-          <span className="mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
+          <span className="ugc mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
             {prev.title}
           </span>
         </Link>
@@ -433,7 +433,7 @@ function PrevNext({ prev, next }) {
           className="group flex flex-col rounded-2xl border border-ink-100 bg-surface p-5 text-end transition-shadow duration-300 ease-premium hover:shadow-card"
         >
           <span className="text-xs font-medium text-ink-400">الفتوى التالية</span>
-          <span className="mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
+          <span className="ugc mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
             {next.title}
           </span>
         </Link>

@@ -106,6 +106,21 @@ export default async function handler(req, res) {
     }
   }
 
+  /**
+   * Carry the caller's real IP through.
+   *
+   * The backend rate-limits question and comment submissions per source address.
+   * Behind this proxy every request reaches it from the *hosting platform's* egress
+   * IP, so without this every visitor would share a single rate-limit bucket and
+   * one busy afternoon would lock everyone else out. `x-forwarded-for` is set by
+   * the platform to the real client and is forwarded above; this only makes sure a
+   * value exists when it is not (local development), and never overwrites one.
+   */
+  if (!headers['x-forwarded-for']) {
+    const ip = req.socket?.remoteAddress;
+    if (ip) headers['x-forwarded-for'] = ip;
+  }
+
   const hasBody = !['GET', 'HEAD'].includes(req.method);
 
   let upstream;

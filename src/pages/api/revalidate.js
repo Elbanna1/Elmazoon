@@ -45,7 +45,9 @@ export default async function handler(req, res) {
   // admin session be used to hammer any route on the site.
   const articleId = req.body?.articleId;
 
-  const paths = ['/', '/articles', '/questions'];
+  // The homepage is fully static (no getStaticProps), so it has no ISR cache to
+  // invalidate — asking would always fail. Only the pages that render live data.
+  const paths = ['/articles', '/questions'];
   if (typeof articleId === 'string' && /^[a-f0-9]{24}$/i.test(articleId)) {
     paths.push(`/articles/${articleId}`);
   }

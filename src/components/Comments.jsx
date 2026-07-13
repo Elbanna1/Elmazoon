@@ -156,7 +156,7 @@ function Comment({ comment, articleId, replyTo, setReplyTo, onPosted, depth = 0 
         </div>
       </header>
 
-      <p className="mt-4 whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
+      <p className="ugc mt-4 whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
         {comment.comment}
       </p>
 
@@ -165,7 +165,7 @@ function Comment({ comment, articleId, replyTo, setReplyTo, onPosted, depth = 0 
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-gold-700">
             رد المأذون
           </p>
-          <p className="whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
+          <p className="ugc whitespace-pre-line text-[0.9375rem] leading-[1.95] text-ink-700">
             {comment.adminReply}
           </p>
         </div>
