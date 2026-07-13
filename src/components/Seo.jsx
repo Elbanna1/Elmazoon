@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { services, site } from '@/lib/site';
+import { articlePath } from '@/lib/slug';
 
 /**
  * Every meta tag and every schema the site emits.
@@ -28,7 +29,21 @@ export default function Seo({
 }) {
   const router = useRouter();
   const path = router.asPath.split('?')[0].split('#')[0];
-  const canonical = `${site.url}${path === '/' ? '' : path}`;
+
+  /**
+   * The canonical URL, percent-encoded exactly once.
+   *
+   * Arabic slugs make this a real hazard rather than a theoretical one. Depending
+   * on how the visitor arrived, `asPath` may hold the Arabic literally
+   * (`/guides/المهر`) or already percent-encoded (`/guides/%D8%A7%D9%84%D9%85...`).
+   * Emitting whichever one happened to arrive means the same page advertises two
+   * different canonicals, and re-encoding an already-encoded path turns every `%`
+   * into `%25` — a URL that 404s.
+   *
+   * Decoding first and then encoding once collapses both inputs to the same
+   * output, which is the entire job of a canonical tag.
+   */
+  const canonical = `${site.url}${path === '/' ? '' : encodeURI(safeDecode(path))}`;
   const fullTitle = title ? `${title} | ${site.name}` : site.defaultTitle;
   const absoluteImage = image.startsWith('http') ? image : `${site.url}${image}`;
 
@@ -43,7 +58,11 @@ export default function Seo({
       <link rel="alternate" hrefLang="x-default" href={canonical} />
 
       {noindex ? (
-        <meta name="robots" content="noindex, nofollow" />
+        // `follow`, not `nofollow`. A noindexed page should still pass crawlers
+        // through to the pages it links to — a search-results page links to real
+        // articles, and `nofollow` would make it a dead end that swallows crawl
+        // paths instead of forwarding them.
+        <meta name="robots" content="noindex, follow" />
       ) : (
         <meta
           name="robots"
@@ -92,6 +111,33 @@ export default function Seo({
       )}
     </Head>
   );
+}
+
+/**
+ * `decodeURI` throws on a malformed sequence — a stray `%` in a URL somebody
+ * hand-typed is enough. A crash in the <head> would take the whole page down, so
+ * an undecodable path is used as-is.
+ */
+function safeDecode(value) {
+  try {
+    return decodeURI(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * An absolute URL for the structured data, encoded identically to the canonical.
+ *
+ * This matters far more than it looks. With Arabic slugs, `${site.url}${path}`
+ * yields `https://almaazoon.com/guides/المهر` — raw UTF-8 — while the canonical
+ * tag emits the percent-encoded form. Those are, to a crawler reconciling a page's
+ * identity, two different strings. The `@id` of the Article, the `url`, the
+ * `mainEntityOfPage` and the canonical must all be *byte-identical*, or the page
+ * is telling Google two stories about what it is.
+ */
+export function canonicalUrl(path) {
+  return `${site.url}${path === '/' ? '' : encodeURI(safeDecode(path))}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -205,7 +251,7 @@ export function breadcrumbSchema(trail) {
       '@type': 'ListItem',
       position: index + 1,
       name: crumb.name,
-      item: `${site.url}${crumb.path === '/' ? '' : crumb.path}`,
+      item: canonicalUrl(crumb.path),
     })),
   };
 }
@@ -224,7 +270,11 @@ export function faqSchema(faqs) {
 
 /** A single fatwa. */
 export function articleSchema(article, { wordCount, readingMinutes } = {}) {
-  const url = `${site.url}/articles/${article._id}`;
+  // The slugged URL, not `/articles/{_id}` — the `@id` and `mainEntityOfPage`
+  // here must be the same URL the canonical tag points at, or Google is told the
+  // page has two identities and picks one of them itself. Encoded through the
+  // same helper the canonical uses, so the two strings are identical byte for byte.
+  const url = canonicalUrl(articlePath(article));
 
   return {
     '@type': 'Article',
@@ -247,12 +297,123 @@ export function articleSchema(article, { wordCount, readingMinutes } = {}) {
 }
 
 /**
+ * A guide or service page from `src/content`.
+ *
+ * Guides are `Article`; services are `Service` offered by the business. The
+ * distinction is not cosmetic — Google treats an `Article` as a thing to read and
+ * a `Service` as a thing to buy, and it surfaces them in different places. Filing
+ * a service page as an article forfeits the service treatment entirely.
+ *
+ * Both carry `author` and `publisher` pointing at the existing `@id` nodes, so
+ * the Ma'zoun's Person entity accumulates every page on the site rather than each
+ * page declaring an anonymous author.
+ */
+export function contentSchema(page, { path, wordCount, readingMinutes }) {
+  const url = canonicalUrl(path);
+
+  if (page.kind === 'service') {
+    return {
+      '@type': 'Service',
+      '@id': `${url}#service`,
+      name: page.title,
+      description: page.description,
+      serviceType: page.title,
+      url,
+      inLanguage: 'ar-EG',
+      provider: { '@id': BUSINESS_ID },
+      areaServed: { '@type': 'AdministrativeArea', name: 'القاهرة الكبرى' },
+      // The page *about* the service, so the prose is still attributable.
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': url,
+        name: page.seoTitle,
+        inLanguage: 'ar-EG',
+        datePublished: page.updated,
+        dateModified: page.updated,
+        author: { '@id': PERSON_ID },
+        isPartOf: { '@id': WEBSITE_ID },
+      },
+    };
+  }
+
+  return {
+    '@type': 'Article',
+    '@id': `${url}#article`,
+    headline: page.title.slice(0, 110),
+    description: page.description,
+    articleSection: page.silo,
+    inLanguage: 'ar-EG',
+    url,
+    datePublished: page.updated,
+    dateModified: page.updated,
+    ...(wordCount ? { wordCount } : {}),
+    ...(readingMinutes ? { timeRequired: `PT${readingMinutes}M` } : {}),
+    author: { '@id': PERSON_ID },
+    publisher: { '@id': BUSINESS_ID },
+    isPartOf: { '@id': WEBSITE_ID },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+  };
+}
+
+/**
+ * A hub page listing other pages.
+ *
+ * `ItemList` is what tells Google the page is a *list of things* and what those
+ * things are, rather than leaving it to infer the structure from the markup. It
+ * is also what makes the hub's children discoverable from the hub alone.
+ */
+export function itemListSchema(items, { path, name }) {
+  return {
+    '@type': 'ItemList',
+    '@id': `${site.url}${path}#list`,
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: canonicalUrl(item.path),
+    })),
+  };
+}
+
+/**
+ * The three entity nodes every page's graph must contain.
+ *
+ * This exists because of a bug that is invisible in the markup and fatal to the
+ * thing it was written for.
+ *
+ * Article and Service nodes declare `author: {'@id': …#person}` and
+ * `publisher: {'@id': …#business}`. An `@id` is a *reference*, and a reference
+ * only resolves if the node it names is in the same `@graph`. Those nodes were
+ * declared on the homepage and nowhere else — so on a guide, a service page, or a
+ * fatwa, `author` pointed at an entity that did not exist in that document.
+ * Google does not fetch the homepage to resolve it; it drops the property.
+ *
+ * The practical cost was the entire point of the exercise: pages of religious and
+ * legal rulings were being published with *no resolvable author*, which is
+ * precisely the E-E-A-T signal that matters most for this subject matter. Every
+ * page carried a byline a reader could see and a crawler could not.
+ *
+ * Including the nodes on every page costs ~1.5KB of HTML and makes the Ma'zoun's
+ * Person entity the declared author of every word on the site. The `@id`s are
+ * stable, so Google merges the repeated declarations into one entity rather than
+ * reading them as many.
+ */
+export function entityGraph() {
+  return [localBusinessSchema(), personSchema(), webSiteSchema()];
+}
+
+/**
  * Wraps nodes into one `@graph`, so the entities cross-reference by `@id` instead
  * of every page re-declaring the business from scratch. One graph per page.
+ *
+ * Nested arrays are flattened, so `graph(...entityGraph(), articleSchema(a))` and
+ * `graph(entityGraph(), articleSchema(a))` both do the right thing.
  */
 export function graph(...nodes) {
   return {
     '@context': 'https://schema.org',
-    '@graph': nodes.filter(Boolean),
+    '@graph': nodes.flat().filter(Boolean),
   };
 }

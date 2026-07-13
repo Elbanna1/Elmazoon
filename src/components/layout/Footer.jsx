@@ -1,7 +1,11 @@
 import Link from 'next/link';
-import { navLinks, services, site } from '@/lib/site';
+import { navLinks, site } from '@/lib/site';
 import { Container } from '@/components/ui/Layout';
 import { SocialLinks } from '@/components/ContactChannels';
+// Deliberately NOT `@/content` — see the note in `content/nav.js`. The footer is
+// in the shared chunk, and importing the content layer here puts every word of
+// every guide into the bundle of every page on the site.
+import { serviceNav } from '@/content/nav';
 
 /**
  * The footer had no mobile layout — only a desktop 12-column grid that collapsed
@@ -45,7 +49,7 @@ export default function Footer() {
               </span>
               <div className="text-start leading-none">
                 <p className="text-[0.9375rem] font-semibold text-ink-900">{site.name}</p>
-                <p className="mt-1 text-[0.6875rem] font-medium text-ink-400">{site.fullName}</p>
+                <p className="mt-1 text-[0.6875rem] font-medium text-ink-500">{site.fullName}</p>
               </div>
             </div>
 
@@ -66,16 +70,19 @@ export default function Footer() {
           <nav className="lg:col-span-3" aria-labelledby="footer-pages">
             <h2
               id="footer-pages"
-              className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400"
+              className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500"
             >
               الصفحات
             </h2>
-            <ul className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
+            {/* On mobile the link itself carries the 44px tap height, so the list
+                needs almost no gap of its own; `sm:` restores the original rhythm
+                and drops the min-height, leaving the desktop footer untouched. */}
+            <ul className="mt-2 space-y-0 sm:mt-4 sm:space-y-3">
               {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600"
+                    className="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-6 sm:min-w-0 sm:justify-start"
                   >
                     {link.label}
                   </Link>
@@ -84,24 +91,37 @@ export default function Footer() {
             </ul>
           </nav>
 
-          {/* Services — internal-link surface for SEO, not just decoration. */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">
+          {/* Services.
+              These were plain <li> text — the words were on the page but nothing
+              pointed anywhere, so the site's own service pages had no inbound link
+              from the one component that renders on every single page. Sitewide
+              footer links are the cheapest internal links there are; leaving them
+              as unlinked text spent the space and collected none of the value. */}
+          <nav className="lg:col-span-2" aria-labelledby="footer-services">
+            <h2
+              id="footer-services"
+              className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500"
+            >
               الخدمات
             </h2>
             <ul className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
-              {services.map((s) => (
-                <li key={s.title} className="text-sm text-ink-600">
-                  {s.title}
+              {serviceNav.map((page) => (
+                <li key={page.slug}>
+                  <Link
+                    href={`/services/${page.slug}`}
+                    className="inline-flex min-h-[2.75rem] items-center text-start text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-6"
+                  >
+                    {page.title}
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Contact — full width on mobile so the numbers have room to sit on one
               line and stay easy to read; one column from `sm`, as before. */}
           <div className="col-span-2 sm:col-span-1 lg:col-span-2">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500">
               تواصل
             </h2>
             <ul className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
@@ -111,7 +131,7 @@ export default function Footer() {
                   // A phone number is a touch target before it is text: 44px is the
                   // minimum comfortable tap size, and it costs no extra height here
                   // because the row already occupies a line.
-                  className="inline-flex min-h-[2.75rem] items-center text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-0"
+                  className="inline-flex min-h-[2.75rem] items-center text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-6"
                 >
                   <span className="ltr-nums">{site.phone.display}</span>
                 </a>
@@ -121,7 +141,7 @@ export default function Footer() {
                   href={site.whatsapp.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[2.75rem] items-center gap-1 text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-0"
+                  className="inline-flex min-h-[2.75rem] items-center gap-1 text-sm text-ink-600 transition-colors duration-200 hover:text-gold-600 sm:min-h-6"
                 >
                   واتساب — <span className="ltr-nums">{site.whatsapp.display}</span>
                 </a>
@@ -132,11 +152,11 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-2 border-t border-ink-100 pt-6 text-center sm:mt-12 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:text-start">
-          <p className="text-xs text-ink-400">
+          <p className="text-xs text-ink-500">
             © <span className="ltr-nums">{new Date().getFullYear()}</span> {site.name} — جميع الحقوق
             محفوظة.
           </p>
-          <p className="text-xs text-ink-300">{site.address.coverage}</p>
+          <p className="text-xs text-ink-500">{site.address.coverage}</p>
         </div>
       </Container>
     </footer>

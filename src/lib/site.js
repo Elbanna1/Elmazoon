@@ -213,10 +213,21 @@ export const whyUs = [
   },
 ];
 
+/**
+ * The primary navigation.
+ *
+ * `/services` and `/guides` are the two silo hubs, and they sit here rather than
+ * only in the footer because header links are the strongest internal links a site
+ * has — they appear on every page, and they tell a crawler what the site
+ * considers its own main subjects. A hub reachable only from the footer is a hub
+ * Google reads as an afterthought.
+ */
 export const navLinks = [
   { href: '/', label: 'الرئيسية' },
-  { href: '/questions', label: 'اسأل المأذون' },
+  { href: '/services', label: 'الخدمات' },
+  { href: '/guides', label: 'الأدلة' },
   { href: '/articles', label: 'الفتاوى' },
+  { href: '/questions', label: 'اسأل المأذون' },
 ];
 
 /** Services offered — drives the homepage services grid. */

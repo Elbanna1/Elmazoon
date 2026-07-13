@@ -14,7 +14,14 @@ import Reveal from '@/components/Reveal';
 import { Container, Section, SectionHeading } from '@/components/ui/Layout';
 import ContactChannels from '@/components/ContactChannels';
 import SocialIcon from '@/components/layout/SocialIcon';
-import { about, faqs, services, site, trustSignals, whyUs } from '@/lib/site';
+import { about, faqs, site, trustSignals, whyUs } from '@/lib/site';
+// The leaf modules, not `@/content` — importing the index here would pull the
+// full text of all 18 guides and the search index into the homepage bundle to
+// render five service cards and six silo links.
+import { services as servicePages } from '@/content/services';
+import { siloList } from '@/content/silos';
+
+const pagePath = (page) => `/services/${page.slug}`;
 
 export default function Home() {
   return (
@@ -33,6 +40,7 @@ export default function Home() {
       <Hero />
       <TrustStrip />
       <Services />
+      <Guides />
       <WhyUs />
       <About />
       <Faq />
@@ -96,7 +104,7 @@ function Hero() {
             </Reveal>
 
             <Reveal delay={240}>
-              <p className="mt-7 text-sm text-ink-400">
+              <p className="mt-7 text-sm text-ink-500">
                 أو{' '}
                 <Link
                   href="/questions"
@@ -177,6 +185,15 @@ function TrustStrip() {
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * The services grid.
+ *
+ * These were static cards — the service names were on the homepage as text, and
+ * pointed nowhere. Now each card is a link to that service's own page, which is
+ * what turns the homepage into the root of the silo instead of a leaf that happens
+ * to mention the services by name. The homepage is the most-linked page on any
+ * site; the links it hands out are the most valuable ones it has to give.
+ */
 function Services() {
   return (
     <Section id="services" aria-labelledby="services-heading">
@@ -190,19 +207,102 @@ function Services() {
           />
         </Reveal>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4">
-          {services.map((service, i) => (
-            <Reveal key={service.title} delay={i * 70} className="h-full">
-              <div className="group h-full rounded-2xl border border-ink-100 bg-surface p-6 shadow-subtle transition-[box-shadow,transform] duration-300 ease-premium hover:-translate-y-1 hover:shadow-card">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-100 text-sm font-semibold text-ink-400 transition-colors duration-300 group-hover:border-gold-200 group-hover:bg-gold-50 group-hover:text-gold-600">
+        <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3">
+          {servicePages.map((service, i) => (
+            <Reveal as="li" key={service.slug} delay={(i % 3) * 70} className="h-full">
+              <Link
+                href={pagePath(service)}
+                className="group flex h-full flex-col rounded-2xl border border-ink-100 bg-surface p-6 shadow-subtle transition-[box-shadow,transform] duration-300 ease-premium hover:-translate-y-1 hover:shadow-card"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-100 text-sm font-semibold text-ink-500 transition-colors duration-300 group-hover:border-gold-200 group-hover:bg-gold-50 group-hover:text-gold-600">
                   <span className="ltr-nums">{String(i + 1).padStart(2, '0')}</span>
                 </span>
-                <h3 className="mt-5 text-[1.0625rem] font-semibold text-ink-900">{service.title}</h3>
-                <p className="mt-2.5 text-sm leading-[1.9] text-ink-500">{service.description}</p>
-              </div>
+                <h3 className="mt-5 text-[1.0625rem] font-semibold text-ink-900 transition-colors duration-200 group-hover:text-gold-700">
+                  {service.title}
+                </h3>
+                <p className="mt-2.5 flex-1 text-sm leading-[1.9] text-ink-500">
+                  {service.description}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gold-600">
+                  تفاصيل الخدمة
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-4 w-4 transition-transform duration-300 ease-premium group-hover:-translate-x-1"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M19 12H5m0 0 6-6m-6 6 6 6"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </Link>
             </Reveal>
           ))}
-        </div>
+        </ul>
+      </Container>
+    </Section>
+  );
+}
+
+/**
+ * The guides, by silo.
+ *
+ * The homepage's one link into the informational half of the site. Without it the
+ * guides hang off `/guides` alone, and the topical structure the whole site is
+ * built around is invisible from its most important page.
+ */
+function Guides() {
+  return (
+    <Section className="bg-surface" aria-labelledby="guides-heading">
+      <Container>
+        <Reveal>
+          <SectionHeading
+            id="guides-heading"
+            eyebrow="الأدلة"
+            title="اعرف حقوقك قبل أن توقّع"
+            lede="أدلة مختصرة في الزواج والتوثيق والمهر والحقوق والطلاق — مكتوبة لتُجيب على سؤالك، لا لتُطيل."
+          />
+        </Reveal>
+
+        <ul className="mx-auto mt-12 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {siloList.map((silo, i) => (
+            <Reveal as="li" key={silo.id} delay={(i % 3) * 60}>
+              <Link
+                href="/guides"
+                className="group flex h-full items-center justify-between gap-3 rounded-xl border border-ink-100 bg-paper px-5 py-4 transition-colors duration-200 hover:border-gold-200 hover:bg-gold-50"
+              >
+                <span className="text-[0.9375rem] font-medium text-ink-800 transition-colors group-hover:text-gold-700">
+                  {silo.title}
+                </span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-4 w-4 shrink-0 text-ink-300 transition-transform duration-300 ease-premium group-hover:-translate-x-1 group-hover:text-gold-600"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M19 12H5m0 0 6-6m-6 6 6 6"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
+
+        <Reveal delay={140} className="mt-10 text-center">
+          <Button href="/guides" variant="secondary">
+            تصفّح كل الأدلة
+          </Button>
+        </Reveal>
       </Container>
     </Section>
   );
@@ -252,7 +352,7 @@ function ExampleAreas() {
               ))}
             </ul>
 
-            <p className="mt-5 text-sm leading-[1.9] text-ink-400">
+            <p className="mt-5 text-sm leading-[1.9] text-ink-500">
               القائمة على سبيل المثال لا الحصر. للاستفسار عن منطقتك، اتصل على{' '}
               <a
                 href={site.phone.href}
@@ -368,7 +468,7 @@ function About() {
               </blockquote>
               <figcaption className="relative mt-6 border-t border-ink-100 pt-5">
                 <p className="text-[0.9375rem] font-semibold text-ink-900">{site.fullName}</p>
-                <p className="mt-1 text-sm text-ink-400">{site.title}</p>
+                <p className="mt-1 text-sm text-ink-500">{site.title}</p>
               </figcaption>
             </figure>
           </Reveal>
@@ -437,7 +537,7 @@ function Contact() {
         {/* No map, and no address. He is متنقل — there is no office to pin, and a
             pin on a place he does not sit at is worse than no pin. */}
         <Reveal delay={140} className="mt-12">
-          <p className="mx-auto max-w-2xl text-center text-sm leading-[1.9] text-ink-400">
+          <p className="mx-auto max-w-2xl text-center text-sm leading-[1.9] text-ink-500">
             المأذون متنقل ويعمل حسب الاتفاق — يحضر إلى المنزل أو القاعة أو المكتب في الموعد الذي
             يناسبك، دون الحاجة إلى الانتقال إلى مقر.
           </p>

@@ -53,7 +53,7 @@ export default function QuestionCard({
             {mine && <span className="ms-2 text-xs font-normal text-gold-700">(سؤالك)</span>}
           </p>
           {asked && (
-            <p className="mt-0.5 text-xs text-ink-400">
+            <p className="mt-0.5 text-xs text-ink-500">
               <time dateTime={commentedAt} className="ltr-nums">
                 {asked}
               </time>
@@ -100,7 +100,7 @@ export default function QuestionCard({
           </span>
           {/* The old copy read "سيتم الرد عليك" — "you" — on every card in a
               public list, addressing the reader rather than the asker. */}
-          <p className="text-sm text-ink-400">في انتظار رد المأذون</p>
+          <p className="text-sm text-ink-500">في انتظار رد المأذون</p>
         </div>
       )}
     </article>

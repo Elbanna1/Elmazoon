@@ -7,4 +7,26 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /bff/
 
+# The site's own API proxy. Not a page, and nothing here should ever be crawled.
+Disallow: /api/
+
+# Search-result URLs (`/articles?q=…`) are deliberately NOT disallowed.
+#
+# That URL is a real entry point: it is what the SearchAction in the WebSite schema
+# points at, and Google has to be able to fetch it for a sitelinks search box to
+# work at all. But an unbounded space of query strings is not a set of pages worth
+# indexing — each one is thin and near-duplicate.
+#
+# They are consolidated with a canonical instead of a Disallow. Every `?q=` URL
+# serves `<link rel="canonical" href="https://almaazoon.com/articles">`, so the
+# archive absorbs whatever authority they attract and none of them index on their
+# own. (`/articles` is statically generated, so its HTML cannot carry a
+# query-dependent `noindex`; the page additionally sets one client-side, which a
+# JS-rendering crawler will honour. The canonical is the load-bearing signal.)
+#
+# A `Disallow` here would be actively worse: it stops Googlebot fetching the URL,
+# which stops it seeing the canonical *or* the noindex. Blocked-but-indexed URLs
+# are the classic way a site ends up with search pages in the index and no way to
+# remove them.
+
 Sitemap: https://almaazoon.com/sitemap.xml

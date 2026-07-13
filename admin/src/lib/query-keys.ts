@@ -1,3 +1,4 @@
+import type { AuditLogParams } from "@/services/analytics.service";
 import type { ArticleListParams } from "@/services/articles.service";
 import type { AdminCommentsParams } from "@/services/comments.service";
 import type { QuestionListParams } from "@/services/questions.service";
@@ -39,5 +40,10 @@ export const qk = {
     all: ["notifications"] as const,
     admin: (unreadOnly: boolean, take: number) =>
       ["notifications", "admin", unreadOnly, take] as const,
+  },
+
+  auditLog: {
+    all: ["audit-log"] as const,
+    list: (params: AuditLogParams) => ["audit-log", "list", params] as const,
   },
 } as const;

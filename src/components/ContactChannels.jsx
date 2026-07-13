@@ -75,7 +75,7 @@ export default function ContactChannels({ channels = contactChannels, className 
                 <span className="block text-[0.9375rem] font-semibold text-ink-900">
                   {channel.name}
                 </span>
-                <span className="ltr-nums mt-0.5 block truncate text-sm text-ink-400">
+                <span className="ltr-nums mt-0.5 block truncate text-sm text-ink-500">
                   {channel.action}
                 </span>
               </span>

@@ -1,5 +1,7 @@
 import { api, articleImage, endpoints } from '@/lib/api';
 import { site } from '@/lib/site';
+import { articlePath } from '@/lib/slug';
+import { pages, pagePath } from '@/content';
 
 /**
  * Generated at request time so a newly published fatwa appears without a rebuild.
@@ -11,8 +13,10 @@ import { site } from '@/lib/site';
  */
 const STATIC_PAGES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
-  { path: '/questions', priority: '0.9', changefreq: 'daily' },
-  { path: '/articles', priority: '0.9', changefreq: 'weekly' },
+  { path: '/services', priority: '0.9', changefreq: 'monthly' },
+  { path: '/guides', priority: '0.9', changefreq: 'weekly' },
+  { path: '/questions', priority: '0.8', changefreq: 'daily' },
+  { path: '/articles', priority: '0.8', changefreq: 'weekly' },
 ];
 
 function escapeXml(value) {
@@ -24,6 +28,22 @@ function escapeXml(value) {
     .replace(/'/g, '&apos;');
 }
 
+/**
+ * A URL fit for an XML document.
+ *
+ * Two separate requirements, and missing either one invalidates the entry:
+ *
+ *  - **Percent-encoding.** Arabic slugs must be encoded, because the sitemap spec
+ *    requires URLs to be RFC-3986 escaped. A raw Arabic path in a sitemap is a
+ *    parse error for some consumers and silently dropped by others.
+ *  - **XML-escaping, afterwards.** `encodeURI` leaves `&` alone, and a bare `&`
+ *    in an XML document is malformed — one of them invalidates the entire file,
+ *    not just the offending `<url>`.
+ */
+function loc(path) {
+  return escapeXml(`${site.url}${path === '/' ? '' : encodeURI(path)}`);
+}
+
 /** W3C datetime. An invalid `lastmod` makes Google discard the whole entry. */
 function iso(value) {
   const date = new Date(value);
@@ -32,8 +52,8 @@ function iso(value) {
 
 function toXml(urls) {
   const body = urls
-    .map(({ loc, lastmod, changefreq, priority, image, title }) => {
-      const parts = [`    <loc>${escapeXml(loc)}</loc>`];
+    .map(({ path, lastmod, changefreq, priority, image, title }) => {
+      const parts = [`    <loc>${loc(path)}</loc>`];
       if (lastmod) parts.push(`    <lastmod>${lastmod}</lastmod>`);
       parts.push(`    <changefreq>${changefreq}</changefreq>`);
       parts.push(`    <priority>${priority}</priority>`);
@@ -55,17 +75,37 @@ ${body}
 
 export async function getServerSideProps({ res }) {
   const urls = STATIC_PAGES.map((page) => ({
-    loc: `${site.url}${page.path === '/' ? '' : page.path}`,
+    path: page.path,
     changefreq: page.changefreq,
     priority: page.priority,
   }));
+
+  /**
+   * The guides and services.
+   *
+   * These are the pages the site is actually trying to rank, and they are the
+   * only ones whose `lastmod` is trustworthy — it is the editorial `updated` date
+   * in the content file, not a database timestamp that moves every time somebody
+   * views the row. Services outrank guides in priority because they are the pages
+   * a search is trying to reach when the searcher is ready to act.
+   */
+  for (const page of pages) {
+    urls.push({
+      path: pagePath(page),
+      lastmod: iso(page.updated),
+      changefreq: 'monthly',
+      priority: page.kind === 'service' ? '0.9' : '0.8',
+    });
+  }
 
   try {
     const { data } = await api.get(endpoints.articles, { params: { page: 1, limit: 200 } });
 
     for (const article of data?.articles ?? []) {
       urls.push({
-        loc: `${site.url}/articles/${article._id}`,
+        // The slugged path — the same URL the canonical tag declares. A sitemap
+        // listing `/articles/{id}` would be feeding Google a list of redirects.
+        path: articlePath(article),
         lastmod: iso(article.updatedAt || article.createdAt),
         changefreq: 'monthly',
         priority: '0.7',
@@ -74,7 +114,7 @@ export async function getServerSideProps({ res }) {
       });
     }
   } catch {
-    // Backend unreachable — emit the static pages only.
+    // Backend unreachable — emit the static and content pages only.
   }
 
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');

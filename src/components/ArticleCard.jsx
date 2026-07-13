@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { uploadUrl } from '@/lib/api';
+import { articlePath } from '@/lib/slug';
 
 /**
  * Fatwa card.
@@ -29,9 +30,13 @@ export default function ArticleCard({
   const src = uploadUrl(image);
   const excerpt = (content || '').trim();
 
+  // The canonical slugged URL, derived from the same helper the page itself uses.
+  // A card linking to `/articles/{id}` would land every visitor on a redirect.
+  const href = articlePath({ _id: id, title });
+
   return (
     <article className="group h-full overflow-hidden rounded-2xl border border-ink-100 bg-surface shadow-subtle transition-[box-shadow,transform] duration-300 ease-premium hover:-translate-y-1 hover:shadow-lift">
-      <Link href={`/articles/${id}`} className="block h-full focus-visible:outline-none">
+      <Link href={href} className="block h-full focus-visible:outline-none">
         <div className="relative aspect-[16/10] overflow-hidden bg-ink-50">
           {src ? (
             <Image

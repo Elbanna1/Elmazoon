@@ -308,6 +308,50 @@ export interface ProblemDetails {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Audit log                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `GET /api/analytics/audit-log` — undocumented in Swagger. Every field below was
+ * read off the live server, and the action names are the ones its enum binder
+ * actually accepts: `CreateArticle` and `UpdateArticle` are *rejected*, however
+ * reasonable they sound. The server's vocabulary is the vocabulary.
+ */
+export const AuditAction = {
+  Login: "Login",
+  LoginFailed: "LoginFailed",
+  Logout: "Logout",
+  PublishArticle: "PublishArticle",
+  EditArticle: "EditArticle",
+  DeleteArticle: "DeleteArticle",
+  AnswerQuestion: "AnswerQuestion",
+  DeleteQuestion: "DeleteQuestion",
+} as const;
+
+export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
+
+export interface AuditLogEntry {
+  _id: string;
+  action: AuditAction;
+  adminEmail: string;
+  /** The article/question the action was performed on. Null for logins. */
+  targetId: string | null;
+  summary: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  occurredAt: string;
+}
+
+/** Same envelope as `/api/dashboard/comments`, down to the field names. */
+export interface AuditLogEnvelope {
+  status: string;
+  data: AuditLogEntry[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Client-side view models                                                     */
 /* -------------------------------------------------------------------------- */
 

@@ -89,7 +89,7 @@ function Messages({ error, errorId, hint, hintId }) {
   return (
     <>
       {hint && !error && (
-        <p id={hintId} className="mt-1.5 text-xs text-ink-400">
+        <p id={hintId} className="mt-1.5 text-xs text-ink-500">
           {hint}
         </p>
       )}

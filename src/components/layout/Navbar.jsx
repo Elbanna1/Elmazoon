@@ -66,7 +66,7 @@ export default function Navbar() {
         {/* Wordmark */}
         <Link
           href="/"
-          className="group flex items-center gap-2.5 rounded-md"
+          className="group flex min-h-[2.75rem] items-center gap-2.5 rounded-md"
           aria-label={`${site.name} — الصفحة الرئيسية`}
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink-900 text-sm font-bold text-gold-300 transition-colors duration-300 group-hover:bg-gold-600 group-hover:text-white">
@@ -74,7 +74,7 @@ export default function Navbar() {
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-[0.9375rem] font-semibold text-ink-900">{site.name}</span>
-            <span className="mt-1 text-[0.6875rem] font-medium text-ink-400">{site.fullName}</span>
+            <span className="mt-1 text-[0.6875rem] font-medium text-ink-500">{site.fullName}</span>
           </span>
         </Link>
 
@@ -85,7 +85,12 @@ export default function Navbar() {
               <Link
                 href={link.href}
                 aria-current={isActive(link.href) ? 'page' : undefined}
-                className={`relative rounded-md px-3.5 py-2 text-[0.9375rem] font-medium transition-colors duration-200 ${
+                // `inline-flex`, not the default `inline`. On an inline element
+                // vertical padding paints but does not grow the layout box, so
+                // `py-2` left these links with a 20px box — under the 24px WCAG
+                // 2.2 minimum target size, and ambiguous to hit-test. As a flex
+                // box the padding is real and the target is the 36px it looks.
+                className={`relative inline-flex min-h-6 items-center rounded-md px-3.5 py-2 text-[0.9375rem] font-medium transition-colors duration-200 ${
                   isActive(link.href)
                     ? 'text-ink-900'
                     : 'text-ink-500 hover:text-ink-900'

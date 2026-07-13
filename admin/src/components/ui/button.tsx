@@ -1,3 +1,4 @@
+import { isValidElement } from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -40,16 +41,38 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * `nativeButton` tells Base UI whether the element it ends up rendering is a real
+ * `<button>`. It defaults to true, and every `<Button render={<Link />}>` in this
+ * app renders an `<a>` — so the default was wrong at each of those call sites, and
+ * Base UI said so on the console: the button semantics it would otherwise supply
+ * (Enter/Space activation, `disabled`) get dropped silently.
+ *
+ * Inferring it here rather than making every caller remember: the wrapper is the
+ * only place that can see both the variant styling and the element being rendered.
+ * An explicit `nativeButton` still wins, and a function `render` — whose element we
+ * cannot inspect — is left to Base UI's own default.
+ */
 function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  const rendersNativeButton =
+    nativeButton ??
+    (isValidElement(render) ? render.type === "button" : undefined)
+
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      {...(render !== undefined ? { render } : {})}
+      {...(rendersNativeButton !== undefined
+        ? { nativeButton: rendersNativeButton }
+        : {})}
       {...props}
     />
   )

@@ -9,7 +9,9 @@ const base =
 
 const variants = {
   // Exactly one primary action per view. Gold is reserved for it.
-  primary: 'bg-gold-500 text-white shadow-subtle hover:bg-gold-600 hover:shadow-card',
+  // White on gold-500 measures 3.77:1 — below the 4.5:1 AA floor for body-size
+  // text. gold-600 is 4.86:1: same hue, one step down the existing ramp.
+  primary: 'bg-gold-600 text-white shadow-subtle hover:bg-gold-700 hover:shadow-card',
   // The main dark action — used for the hero CTA where gold would be too loud.
   ink: 'bg-ink-900 text-white shadow-subtle hover:bg-ink-800 hover:shadow-card',
   secondary: 'bg-surface text-ink-800 border border-ink-100 hover:border-ink-200 hover:bg-ink-50',

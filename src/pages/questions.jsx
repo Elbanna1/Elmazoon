@@ -213,7 +213,7 @@ function AskForm() {
       )}
 
       <div className="mt-6 flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
-        <p className="text-xs leading-relaxed text-ink-400">
+        <p className="text-xs leading-relaxed text-ink-500">
           سيظهر سؤالك واسمك للجميع في قائمة الأسئلة.
         </p>
         <Button type="submit" size="lg" loading={status === 'submitting'} className="w-full sm:w-auto">
@@ -329,7 +329,7 @@ function QuestionList({ initialQuestions, initialError }) {
                   type="button"
                   onClick={() => setFilter(tab.id)}
                   aria-pressed={filter === tab.id}
-                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors duration-200 ease-premium ${
+                  className={`inline-flex min-h-[2.75rem] items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 ease-premium ${
                     filter === tab.id
                       ? 'border-ink-900 bg-ink-900 text-white'
                       : 'border-ink-100 bg-surface text-ink-600 hover:border-ink-200 hover:text-ink-900'
@@ -338,7 +338,7 @@ function QuestionList({ initialQuestions, initialError }) {
                   {tab.label}
                   <span
                     className={`ltr-nums rounded px-1.5 text-xs ${
-                      filter === tab.id ? 'bg-white/15' : 'bg-ink-50 text-ink-400'
+                      filter === tab.id ? 'bg-white/15' : 'bg-ink-50 text-ink-500'
                     }`}
                   >
                     {tab.count}
@@ -434,7 +434,7 @@ function QuestionList({ initialQuestions, initialError }) {
             </Button>
           ) : (
             // The old button never told you it had run out.
-            <p className="text-sm text-ink-400">لا توجد أسئلة أخرى.</p>
+            <p className="text-sm text-ink-500">لا توجد أسئلة أخرى.</p>
           )}
           {status === 'error' && <Alert tone="error" className="mt-5 text-start">{error}</Alert>}
         </div>

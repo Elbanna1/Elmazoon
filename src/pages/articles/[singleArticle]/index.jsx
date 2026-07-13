@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import Seo, { articleSchema, breadcrumbSchema, graph } from '@/components/Seo';
+import Seo, { articleSchema, breadcrumbSchema, entityGraph, graph } from '@/components/Seo';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 import ArticleCard from '@/components/ArticleCard';
@@ -12,6 +12,7 @@ import { Container, Section } from '@/components/ui/Layout';
 import SocialIcon from '@/components/layout/SocialIcon';
 import { api, articleImage, endpoints, toMessage } from '@/lib/api';
 import { site } from '@/lib/site';
+import { articlePath, idFromSlug, isCanonicalSegment } from '@/lib/slug';
 
 const RELATED_COUNT = 3;
 
@@ -32,9 +33,38 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
+  /**
+   * The URL is `{slug}-{id}`, and the id is the only half that is authoritative.
+   *
+   * `idFromSlug` also accepts a bare `{id}`, because every link that existed
+   * before the slugs — shared on WhatsApp, sitting in someone's bookmarks, already
+   * crawled by Google — is that form, and those must not break.
+   */
+  const id = idFromSlug(params.singleArticle);
+  if (!id) return { notFound: true, revalidate: 60 };
+
   try {
-    const { data } = await api.get(endpoints.article(params.singleArticle));
+    const { data } = await api.get(endpoints.article(id));
     if (!data?._id) return { notFound: true, revalidate: 60 };
+
+    /**
+     * One article, one URL.
+     *
+     * If the visitor arrived on a bare id, or on a slug left over from a title
+     * that has since been edited, redirect to the canonical form. Without this the
+     * same article is reachable at unboundedly many URLs, every one of them
+     * serving a 200 — which is duplicate content, and it splits whatever authority
+     * the article earns across all of them.
+     *
+     * A 308 would be wrong here: the canonical URL changes whenever the title is
+     * edited, and browsers cache a permanent redirect effectively forever.
+     */
+    if (!isCanonicalSegment(params.singleArticle, data)) {
+      return {
+        redirect: { destination: articlePath(data), permanent: false },
+        revalidate: 300,
+      };
+    }
 
     // Related fatwas plus the previous/next pair, resolved at build/revalidate
     // time so the reader never waits on a second request — and so they land in
@@ -131,7 +161,8 @@ export default function ArticlePage({ article, related = [], prev, next, error }
 
   const src = articleImage(article);
   const excerpt = (article.content || '').trim().slice(0, 160);
-  const shareUrl = `${site.url}/articles/${article._id}`;
+  const path = articlePath(article);
+  const shareUrl = `${site.url}${path}`;
   const words = countWords(article.content);
   const minutes = readingMinutes(article.content);
 
@@ -146,11 +177,15 @@ export default function ArticlePage({ article, related = [], prev, next, error }
         publishedAt={article.createdAt}
         modifiedAt={article.updatedAt || article.createdAt}
         jsonLd={graph(
+          // Without these, the fatwa's `author` — the whole E-E-A-T claim on a
+          // page of religious rulings — references a Person node that is not in
+          // this document, and Google drops it.
+          entityGraph(),
           articleSchema(article, { wordCount: words, readingMinutes: minutes }),
           breadcrumbSchema([
             { name: 'الرئيسية', path: '/' },
             { name: 'الفتاوى', path: '/articles' },
-            { name: article.title, path: `/articles/${article._id}` },
+            { name: article.title, path },
           ]),
         )}
       />
@@ -159,16 +194,25 @@ export default function ArticlePage({ article, related = [], prev, next, error }
 
       <Section spacing="tight" className="pt-8 sm:pt-10">
         <Container size="narrow">
-          <nav aria-label="مسار التنقل" className="mb-8">
-            <ol className="flex items-center gap-2 text-sm text-ink-400">
+          {/* Breadcrumb links were 21px tall — under the 44px minimum tap size.
+              The height comes from the link itself, so the row grows only on
+              mobile; `sm:` returns it to the original inline rhythm. */}
+          <nav aria-label="مسار التنقل" className="mb-6 sm:mb-8">
+            <ol className="flex items-center gap-2 text-sm text-ink-500">
               <li>
-                <Link href="/" className="transition-colors hover:text-ink-700">
+                <Link
+                  href="/"
+                  className="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center transition-colors hover:text-ink-700 sm:min-h-0 sm:min-w-0 sm:justify-start"
+                >
                   الرئيسية
                 </Link>
               </li>
               <li aria-hidden="true">/</li>
               <li>
-                <Link href="/articles" className="transition-colors hover:text-ink-700">
+                <Link
+                  href="/articles"
+                  className="inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center transition-colors hover:text-ink-700 sm:min-h-0 sm:min-w-0 sm:justify-start"
+                >
                   الفتاوى
                 </Link>
               </li>
@@ -180,7 +224,7 @@ export default function ArticlePage({ article, related = [], prev, next, error }
               <h1 className="ugc text-balance text-3xl font-semibold leading-tight tracking-tight text-ink-900 sm:text-4xl">
                 {article.title}
               </h1>
-              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-400">
+              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-500">
                 <span>{site.fullName}</span>
 
                 {article.createdAt && (
@@ -327,7 +371,7 @@ function ShareRow({ title, url }) {
       </Button>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-ink-400">شارك الفتوى</span>
+        <span className="text-sm font-medium text-ink-500">شارك الفتوى</span>
         <ul className="flex gap-2">
           {targets.map((target) => (
             <li key={target.name}>
@@ -337,7 +381,7 @@ function ShareRow({ title, url }) {
                 rel="noopener noreferrer"
                 aria-label={`شارك عبر ${target.name}`}
                 title={`شارك عبر ${target.name}`}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ink-100 bg-surface text-ink-500 transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-ink-200 hover:text-ink-900"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-ink-100 bg-surface text-ink-500 transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-ink-200 hover:text-ink-900"
               >
                 <SocialIcon name={target.icon} />
               </a>
@@ -371,7 +415,7 @@ function CopyLinkButton({ url }) {
       }}
       aria-label={copied ? 'تم نسخ الرابط' : 'انسخ رابط الفتوى'}
       title={copied ? 'تم النسخ' : 'انسخ الرابط'}
-      className="flex h-10 w-10 items-center justify-center rounded-lg border border-ink-100 bg-surface text-ink-500 transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-ink-200 hover:text-ink-900"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-ink-100 bg-surface text-ink-500 transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-ink-200 hover:text-ink-900"
     >
       {copied ? (
         <svg viewBox="0 0 24 24" fill="none" className="h-[1.125rem] w-[1.125rem]" aria-hidden="true">
@@ -413,11 +457,11 @@ function PrevNext({ prev, next }) {
       {/* RTL: "previous" (older) sits on the right, which is where `order` puts it. */}
       {prev ? (
         <Link
-          href={`/articles/${prev._id}`}
+          href={articlePath(prev)}
           rel="prev"
           className="group flex flex-col rounded-2xl border border-ink-100 bg-surface p-5 transition-shadow duration-300 ease-premium hover:shadow-card"
         >
-          <span className="text-xs font-medium text-ink-400">الفتوى السابقة</span>
+          <span className="text-xs font-medium text-ink-500">الفتوى السابقة</span>
           <span className="ugc mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
             {prev.title}
           </span>
@@ -428,11 +472,11 @@ function PrevNext({ prev, next }) {
 
       {next && (
         <Link
-          href={`/articles/${next._id}`}
+          href={articlePath(next)}
           rel="next"
           className="group flex flex-col rounded-2xl border border-ink-100 bg-surface p-5 text-end transition-shadow duration-300 ease-premium hover:shadow-card"
         >
-          <span className="text-xs font-medium text-ink-400">الفتوى التالية</span>
+          <span className="text-xs font-medium text-ink-500">الفتوى التالية</span>
           <span className="ugc mt-1.5 line-clamp-2 text-[0.9375rem] font-semibold text-ink-900 transition-colors group-hover:text-gold-700">
             {next.title}
           </span>

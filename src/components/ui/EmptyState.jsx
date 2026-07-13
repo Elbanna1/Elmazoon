@@ -18,7 +18,7 @@ export default function EmptyState({ title, description, action, className = '' 
         </svg>
       </div>
       <p className="text-base font-semibold text-ink-800">{title}</p>
-      {description && <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-ink-400">{description}</p>}
+      {description && <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-ink-500">{description}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );

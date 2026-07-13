@@ -56,7 +56,7 @@ export default function Comments({ articleId, initialCount = 0 }) {
       >
         التعليقات
         {count > 0 && (
-          <span className="ms-2 text-base font-normal text-ink-400">
+          <span className="ms-2 text-base font-normal text-ink-500">
             (<span className="ltr-nums">{count}</span>)
           </span>
         )}
@@ -148,7 +148,7 @@ function Comment({ comment, articleId, replyTo, setReplyTo, onPosted, depth = 0 
               <span className="ms-2 text-xs font-normal text-gold-700">(تعليقك)</span>
             )}
           </p>
-          <p className="mt-0.5 text-xs text-ink-400">
+          <p className="mt-0.5 text-xs text-ink-500">
             <time dateTime={comment.createdAt} className="ltr-nums">
               {formatDate(comment.createdAt)}
             </time>
@@ -318,7 +318,7 @@ function CommentForm({ articleId, parentCommentId, onPosted, compact = false }) 
       )}
 
       <div className="mt-5 flex items-center justify-between gap-4">
-        <p className="text-xs leading-relaxed text-ink-400">
+        <p className="text-xs leading-relaxed text-ink-500">
           يظهر تعليقك على الفتوى فور إرساله.
         </p>
         <Button type="submit" loading={status === 'submitting'}>
