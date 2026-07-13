@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# The admin surface must never be indexed. It is a separate application served
+# through this origin by a Next.js Multi-Zones rewrite, so it needs excluding here.
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /bff/
+
+Sitemap: https://almaazoon.com/sitemap.xml
