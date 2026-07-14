@@ -49,6 +49,33 @@ const STRIP_FROM_RESPONSE = new Set([
   // which would blank the dashboard if it were applied to an HTML response.
   "content-security-policy",
   "set-cookie",
+
+  /**
+   * The API answers its GETs with `Cache-Control: public, max-age=30`.
+   *
+   * That header is written for the *public* site, where a 30-second cache is
+   * exactly right. Forwarded to the admin it is a bug with teeth: the browser
+   * caches the questions list, and when a mutation invalidates the query and
+   * React Query refetches, the browser answers the refetch out of its own cache
+   * with the body from *before* the write. The optimistic update is then
+   * overwritten by that stale body — the answered question flips back to
+   * "بانتظار الرد", the reply vanishes from under the comment — and it stays
+   * wrong for up to thirty seconds.
+   *
+   * It was intermittent, which is what made it nasty: whether the refetch hit a
+   * cached body depended on how long the list had been sitting on screen.
+   *
+   * `public` also means a shared cache is free to store an authenticated admin's
+   * data. Both problems die with the header, replaced below by `no-store`.
+   */
+  "cache-control",
+  "expires",
+  "pragma",
+  "age",
+  // Without a freshness lifetime these can only serve a conditional revalidation
+  // that `no-store` has already ruled out.
+  "etag",
+  "last-modified",
 ]);
 
 /**
@@ -148,6 +175,16 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   upstream.headers.forEach((value, key) => {
     if (!STRIP_FROM_RESPONSE.has(key.toLowerCase())) responseHeaders.set(key, value);
   });
+
+  /**
+   * Nothing behind this proxy may be cached by anyone.
+   *
+   * Every response here is either an admin's private data or the state they just
+   * changed, and both must be read from the server every single time. This is what
+   * makes a post-mutation refetch actually reach the API instead of being answered
+   * from the browser's cache with a body from before the write.
+   */
+  responseHeaders.set("Cache-Control", "no-store, must-revalidate");
 
   const isSecure =
     req.nextUrl.protocol === "https:" ||

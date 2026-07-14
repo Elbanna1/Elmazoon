@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import WelcomeModal from '@/components/WelcomeModal';
 import { api, endpoints } from '@/lib/api';
 
 export default function SiteLayout({ children }) {
@@ -34,6 +35,8 @@ export default function SiteLayout({ children }) {
         {children}
       </main>
       <Footer />
+      {/* Renders nothing until it triggers, and never more than once a session. */}
+      <WelcomeModal />
     </div>
   );
 }

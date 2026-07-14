@@ -13,6 +13,8 @@ import Accordion from '@/components/ui/Accordion';
 import Reveal from '@/components/Reveal';
 import { Container, Section, SectionHeading } from '@/components/ui/Layout';
 import ContactChannels from '@/components/ContactChannels';
+import RequiredDocuments from '@/components/RequiredDocuments';
+import OfficeLocation from '@/components/OfficeLocation';
 import SocialIcon from '@/components/layout/SocialIcon';
 import { about, faqs, site, trustSignals, whyUs } from '@/lib/site';
 // The leaf modules, not `@/content` — importing the index here would pull the
@@ -40,11 +42,15 @@ export default function Home() {
       <Hero />
       <TrustStrip />
       <Services />
+      {/* Directly after the services: the visitor has just read what will be done
+          for them, and the next thing they need is what to bring. */}
+      <RequiredDocuments />
       <Guides />
       <WhyUs />
       <About />
       <Faq />
       <Contact />
+      <OfficeLocation />
       {/* Examples only, and last — never the page's subject. */}
       <ExampleAreas />
       <ClosingCta />
@@ -519,7 +525,7 @@ function Faq() {
  */
 function Contact() {
   return (
-    <Section id="contact" aria-labelledby="contact-heading">
+    <Section id="contact" className="scroll-mt-24" aria-labelledby="contact-heading">
       <Container>
         <Reveal>
           <SectionHeading
@@ -534,8 +540,10 @@ function Contact() {
           <ContactChannels />
         </Reveal>
 
-        {/* No map, and no address. He is متنقل — there is no office to pin, and a
-            pin on a place he does not sit at is worse than no pin. */}
+        {/* The office and its map are the section immediately below. This line
+            stays because the office is where you can *meet* him — the service
+            itself still travels to you, and that is what a visitor needs to know
+            before they assume they have to come to a counter. */}
         <Reveal delay={140} className="mt-12">
           <p className="mx-auto max-w-2xl text-center text-sm leading-[1.9] text-ink-500">
             المأذون متنقل ويعمل حسب الاتفاق — يحضر إلى المنزل أو القاعة أو المكتب في الموعد الذي

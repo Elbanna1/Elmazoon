@@ -73,6 +73,27 @@ export const site = {
     ],
   },
 
+  /**
+   * The office.
+   *
+   * Content only — deliberately *not* mirrored into the structured data. The
+   * schema in Seo.jsx still declares no `address`, no `geo` and no
+   * `openingHoursSpecification`, because the business is متنقل and those claims
+   * were removed on purpose. This is the place a visitor can meet him; it is not
+   * a claim about where the service is performed, and changing the schema would
+   * be an SEO change.
+   */
+  office: {
+    heading: 'عنوان المكتب',
+    address: 'العبور - الحي الأول - محور السادات - بجوار مدرسة معاذ بن جبل - بجوار موقف حليم.',
+    /** Opens the pin in the Google Maps app or a new tab. */
+    mapsUrl:
+      'https://www.google.com/maps?q=30.235612869262695,31.46569061279297&z=17&hl=en',
+    /** The same pin, as an embeddable frame. No API key required. */
+    embedUrl:
+      'https://www.google.com/maps?q=30.235612869262695,31.46569061279297&z=17&hl=ar&output=embed',
+  },
+
   social: [
     {
       name: 'واتساب',
@@ -212,6 +233,34 @@ export const whyUs = [
     body: 'أسئلتك تُجاب عليها ونُشر إجاباتها علنًا في صفحة الأسئلة ليستفيد منها غيرك.',
   },
 ];
+
+/**
+ * The paperwork a couple must bring to the appointment.
+ *
+ * `n` is the Arabic-Indic ordinal shown in the badge; `text` is the requirement
+ * itself. They are stored apart only so the numeral can sit in the badge rather
+ * than inside the sentence — the rendered line reads identically to the source.
+ *
+ * `icon` names a glyph in RequiredDocuments' local icon set.
+ */
+export const requiredDocuments = [
+  { n: '١', icon: 'idCard', text: 'بطاقة الزوج وثلاث صور منها.' },
+  { n: '٢', icon: 'idCardAlt', text: 'بطاقة الزوجة وثلاث صور منها.' },
+  {
+    n: '٣',
+    icon: 'guardian',
+    text: 'بطاقة وكيل الزوجة (الوالد أو الأخ أو العم أو الخال) وصورة منها.',
+  },
+  { n: '٤', icon: 'photo', text: '٦ صور شخصية لكل من الزوج والزوجة.' },
+  { n: '٥', icon: 'health', text: 'شهادة صحية من مستشفى حكومي أو وحدة طب أسرة.' },
+  { n: '٦', icon: 'divorce', text: 'إشهاد طلاق رسمي إذا كانت الزوجة مطلقة.' },
+  { n: '٧', icon: 'documents', text: 'وثيقة الزواج + شهادة وفاة الزوج إذا كانت الزوجة أرملة.' },
+  { n: '٨', icon: 'certificate', text: 'أصل شهادة الميلاد للزوج والزوجة.' },
+];
+
+/** The highlighted note that closes the checklist. */
+export const requiredDocumentsNote =
+  'يرجى التأكد من تجهيز جميع المستندات قبل موعد عقد الزواج لتسهيل إنهاء الإجراءات.';
 
 /**
  * The primary navigation.
