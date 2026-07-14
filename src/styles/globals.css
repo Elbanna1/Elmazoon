@@ -28,9 +28,25 @@
   }
 
   /* One focus treatment for the whole product. Visible only for keyboard users,
-     so it never fights the pointer-driven hover states. */
+     so it never fights the pointer-driven hover states.
+
+     No `rounded-md` here. `@apply rounded-md` sets `border-radius` on the element
+     itself, not on the ring — so every focused control was snapped to a 6px radius
+     for as long as it held focus. A `rounded-lg` button (10px) visibly squared off,
+     and a `rounded-full` icon button turned into a rounded rectangle, the moment a
+     keyboard user tabbed to it. The ring already follows whatever radius the
+     element declares, so the correct value is none at all. */
   :focus-visible {
-    @apply outline-none ring-2 ring-gold-500 ring-offset-2 ring-offset-paper rounded-md;
+    @apply outline-none ring-2 ring-gold-500 ring-offset-2 ring-offset-paper;
+  }
+
+  /* `ring-offset` paints the 2px gap in the offset colour, and the site-wide
+     default is `paper`. Inside the dark closing band that gap became a bright
+     halo around the focused button — the one place on the site where the default
+     is wrong. Scoped to the dark surfaces rather than fixed per-button, so it
+     cannot drift out of sync. */
+  .on-dark :focus-visible {
+    @apply ring-offset-ink-900;
   }
 
   ::selection {

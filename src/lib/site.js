@@ -244,12 +244,12 @@ export const whyUs = [
  * `icon` names a glyph in RequiredDocuments' local icon set.
  */
 export const requiredDocuments = [
-  { n: '١', icon: 'idCard', text: 'بطاقة الزوج وثلاث صور منها.' },
-  { n: '٢', icon: 'idCardAlt', text: 'بطاقة الزوجة وثلاث صور منها.' },
+  { n: '١', icon: 'idCard', text: 'بطاقة الزوج + ثلاث صور منها.' },
+  { n: '٢', icon: 'idCardAlt', text: 'بطاقة الزوجة + ثلاث صور منها.' },
   {
     n: '٣',
     icon: 'guardian',
-    text: 'بطاقة وكيل الزوجة (الوالد أو الأخ أو العم أو الخال) وصورة منها.',
+    text: 'بطاقة وكيل الزوجة (الوالد أو الأخ أو العم أو الخال) + صورة منها.',
   },
   { n: '٤', icon: 'photo', text: '٦ صور شخصية لكل من الزوج والزوجة.' },
   { n: '٥', icon: 'health', text: 'شهادة صحية من مستشفى حكومي أو وحدة طب أسرة.' },
@@ -258,9 +258,15 @@ export const requiredDocuments = [
   { n: '٨', icon: 'certificate', text: 'أصل شهادة الميلاد للزوج والزوجة.' },
 ];
 
+export const requiredDocumentsHeading = {
+  title: 'المستندات المطلوبة لعقد الزواج',
+  subtitle:
+    'يرجى تجهيز المستندات التالية قبل موعد عقد الزواج لتسهيل إنهاء جميع الإجراءات.',
+};
+
 /** The highlighted note that closes the checklist. */
 export const requiredDocumentsNote =
-  'يرجى التأكد من تجهيز جميع المستندات قبل موعد عقد الزواج لتسهيل إنهاء الإجراءات.';
+  'يرجى التأكد من صحة جميع البيانات وإحضار أصول المستندات المطلوبة يوم عقد الزواج.';
 
 /**
  * The primary navigation.
@@ -277,6 +283,19 @@ export const navLinks = [
   { href: '/guides', label: 'الأدلة' },
   { href: '/articles', label: 'الفتاوى' },
   { href: '/questions', label: 'اسأل المأذون' },
+];
+
+/**
+ * Homepage sections that are also reachable from the navigation.
+ *
+ * Kept apart from `navLinks` because they are a different kind of link: they point
+ * at a *section*, not a page, so they are active only while that section is under
+ * the header, and from any other page they navigate home first. `id` is the anchor
+ * the scroll-spy observes.
+ */
+export const sectionLinks = [
+  { id: 'documents', href: '/#documents', emoji: '📄', label: 'المستندات المطلوبة' },
+  { id: 'location', href: '/#location', emoji: '📍', label: 'عنوان المكتب' },
 ];
 
 /** Services offered — drives the homepage services grid. */

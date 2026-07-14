@@ -562,7 +562,7 @@ function ClosingCta() {
     <Section spacing="tight" className="pb-20 sm:pb-24">
       <Container>
         <Reveal>
-          <div className="relative overflow-hidden rounded-3xl bg-ink-900 px-6 py-14 text-center sm:px-12 sm:py-16">
+          <div className="on-dark relative overflow-hidden rounded-3xl bg-ink-900 px-6 py-14 text-center sm:px-12 sm:py-16">
             <div
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_60%_at_50%_0%,rgba(166,124,61,0.22),transparent_70%)]"
               aria-hidden="true"

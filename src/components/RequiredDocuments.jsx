@@ -1,6 +1,10 @@
 import Reveal from '@/components/Reveal';
 import { Container, Section, SectionHeading } from '@/components/ui/Layout';
-import { requiredDocuments, requiredDocumentsNote } from '@/lib/site';
+import {
+  requiredDocuments,
+  requiredDocumentsHeading,
+  requiredDocumentsNote,
+} from '@/lib/site';
 
 /**
  * The paperwork checklist.
@@ -111,46 +115,56 @@ export default function RequiredDocuments() {
           <SectionHeading
             id="documents-heading"
             eyebrow="قبل الموعد"
-            title="الأوراق المطلوبة لإتمام عقد الزواج"
-            lede="جهّز هذه المستندات قبل الحضور، حتى يتم توثيق العقد في الموعد دون تأجيل."
+            title={requiredDocumentsHeading.title}
+            lede={requiredDocumentsHeading.subtitle}
           />
         </Reveal>
 
-        <Reveal delay={80} className="mt-12">
-          <div className="rounded-3xl border border-ink-100 bg-paper p-5 shadow-card sm:p-8 lg:p-10">
-            <ol className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-              {requiredDocuments.map((doc) => (
-                <li
-                  key={doc.n}
-                  className="flex items-start gap-4 rounded-2xl p-3 transition-colors duration-200 ease-premium hover:bg-gold-50/60 sm:p-4"
-                >
+        {/* Cards, on the same 4px rhythm and with the same hover lift as the
+            services grid — the one other numbered card grid on this page. */}
+        <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4">
+          {requiredDocuments.map((doc, i) => (
+            <Reveal as="li" key={doc.n} delay={(i % 4) * 60} className="h-full">
+              <div className="group flex h-full flex-col rounded-2xl border border-ink-100 bg-paper p-5 shadow-subtle transition-[box-shadow,transform] duration-300 ease-premium hover:-translate-y-1 hover:shadow-card">
+                <div className="flex items-center justify-between gap-3">
                   <span
-                    className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600 ring-1 ring-inset ring-gold-100"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gold-50 text-gold-600 ring-1 ring-inset ring-gold-100"
                     aria-hidden="true"
                   >
                     <DocIcon name={doc.icon} />
                   </span>
+                  {/* The ordinal, as a numeral rather than inside the sentence.
+                      An <ol> already carries the ordering semantically, so this is
+                      decoration and is hidden from assistive tech. */}
+                  <span
+                    className="text-[1.375rem] font-semibold leading-none tracking-tight text-ink-200 transition-colors duration-300 group-hover:text-gold-300"
+                    aria-hidden="true"
+                  >
+                    {doc.n}
+                  </span>
+                </div>
 
-                  {/* `min-w-0` — without it a long unbroken run inside a flex item
-                      cannot shrink below its content, and the row pushes the page
-                      sideways on a 320px screen. */}
-                  <p className="ugc min-w-0 text-[0.9375rem] leading-[1.95] text-ink-700">
-                    <span className="font-semibold text-gold-600">{doc.n}-</span> {doc.text}
-                  </p>
-                </li>
-              ))}
-            </ol>
+                {/* `min-w-0` — without it a long unbroken run cannot shrink below
+                    its content width, and the card pushes the page sideways on a
+                    320px screen. */}
+                <p className="ugc mt-4 min-w-0 flex-1 text-[0.9375rem] leading-[1.95] text-ink-700">
+                  {doc.text}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </ol>
 
-            <p className="mt-6 flex items-start gap-3 rounded-2xl border border-gold-100 bg-gold-50 p-4 text-[0.9375rem] leading-[1.9] text-ink-700 sm:mt-8 sm:p-5">
-              <span className="mt-0.5 shrink-0 text-gold-600" aria-hidden="true">
-                <svg viewBox="0 0 24 24" className="h-5 w-5">
-                  <circle cx="12" cy="12" r="9.25" {...stroke} />
-                  <path d="M12 11.25v5M12 7.75h.01" {...stroke} />
-                </svg>
-              </span>
-              <span className="min-w-0">{requiredDocumentsNote}</span>
-            </p>
-          </div>
+        <Reveal delay={120} className="mt-8">
+          <p className="mx-auto flex max-w-3xl items-start gap-3 rounded-2xl border border-gold-100 bg-gold-50 p-5 text-[0.9375rem] leading-[1.9] text-ink-700 sm:p-6">
+            <span className="mt-0.5 shrink-0 text-gold-600" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="h-5 w-5">
+                <circle cx="12" cy="12" r="9.25" {...stroke} />
+                <path d="M12 11.25v5M12 7.75h.01" {...stroke} />
+              </svg>
+            </span>
+            <span className="min-w-0">{requiredDocumentsNote}</span>
+          </p>
         </Reveal>
       </Container>
     </Section>

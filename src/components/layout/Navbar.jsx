@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { navLinks, site } from '@/lib/site';
+import { navLinks, sectionLinks, site } from '@/lib/site';
 import Button from '@/components/ui/Button';
 import SocialIcon from './SocialIcon';
 
@@ -9,8 +9,12 @@ export default function Navbar() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
+  const visibleRef = useRef(new Set());
+
+  const onHome = router.pathname === '/';
 
   // The bar starts transparent over the hero and gains a hairline + blur on
   // scroll. Cheap, and it's the single detail that makes a header feel modern.
@@ -48,8 +52,82 @@ export default function Navbar() {
     };
   }, [open]);
 
-  const isActive = (href) =>
-    href === '/' ? router.pathname === '/' : router.pathname.startsWith(href);
+  /**
+   * Scroll-spy for the two section links.
+   *
+   * An IntersectionObserver rather than a scroll listener: a listener would run on
+   * every frame of every scroll on every page, and this only needs to fire when a
+   * section actually crosses a boundary.
+   *
+   * The observation band is the strip between the bottom of the sticky header
+   * (96px) and 45% of the viewport — `rootMargin` shrinks the root to that strip.
+   * Without it a tall section counts as "visible" the moment one pixel of it
+   * appears at the very bottom of the screen, and both links would light up at
+   * once. A Set is kept because two sections can overlap the band during a fast
+   * scroll; the earlier one in document order wins, which is the one the reader is
+   * actually looking at.
+   */
+  useEffect(() => {
+    visibleRef.current = new Set();
+    setActiveSection(null);
+    if (!onHome) return undefined;
+
+    const elements = sectionLinks
+      .map((link) => document.getElementById(link.id))
+      .filter(Boolean);
+    if (!elements.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visibleRef.current.add(entry.target.id);
+          else visibleRef.current.delete(entry.target.id);
+        }
+        const first = sectionLinks.find((link) => visibleRef.current.has(link.id));
+        setActiveSection(first?.id ?? null);
+      },
+      { rootMargin: '-96px 0px -45% 0px' }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [onHome]);
+
+  /**
+   * Scroll to a section, or navigate home first if we are not there.
+   *
+   * The scroll is deferred to the frame *after* the drawer has closed, and that is
+   * not a nicety. The open drawer is part of the header, so it adds ~430px to the
+   * document above the fold; measuring the target while it is open and then letting
+   * it collapse mid-flight lands the reader 426px past the section. Waiting for the
+   * next paint means the position is measured against the layout the reader will
+   * actually be looking at.
+   *
+   * `requestAnimationFrame` twice: the first fires before React has committed the
+   * closed drawer, the second after the browser has laid it out.
+   */
+  const goToSection = (event, link) => {
+    setOpen(false);
+    if (!onHome) return; // Not on the homepage — let the <Link> navigate to /#id.
+
+    event.preventDefault();
+
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const target = document.getElementById(link.id);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.history.replaceState(null, '', link.href);
+      })
+    );
+  };
+
+  const isActive = (href) => {
+    // While a section is under the header it owns the active state — otherwise the
+    // homepage link and the section link would both be lit at the same time.
+    if (href === '/') return onHome && !activeSection;
+    return router.pathname.startsWith(href);
+  };
 
   return (
     <header
@@ -79,7 +157,11 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop links */}
-        <ul className="hidden items-center gap-1 lg:flex">
+        {/* Seven links. At 1024 they fit with 8px to spare, which is not a margin
+            — a slightly wider Arabic fallback font and they wrap or push the
+            actions off the bar. The horizontal padding tightens at `lg` and is
+            restored at `xl`, which buys ~80px and costs nothing visible. */}
+        <ul className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {navLinks.map((link) => (
             <li key={link.href}>
               <Link
@@ -90,7 +172,7 @@ export default function Navbar() {
                 // `py-2` left these links with a 20px box — under the 24px WCAG
                 // 2.2 minimum target size, and ambiguous to hit-test. As a flex
                 // box the padding is real and the target is the 36px it looks.
-                className={`relative inline-flex min-h-6 items-center rounded-md px-3.5 py-2 text-[0.9375rem] font-medium transition-colors duration-200 ${
+                className={`relative inline-flex min-h-6 items-center whitespace-nowrap rounded-md px-2.5 py-2 text-[0.9375rem] font-medium transition-colors duration-200 xl:px-3.5 ${
                   isActive(link.href)
                     ? 'text-ink-900'
                     : 'text-ink-500 hover:text-ink-900'
@@ -98,8 +180,32 @@ export default function Navbar() {
               >
                 {link.label}
                 <span
-                  className={`absolute inset-x-3.5 -bottom-0.5 h-px origin-center bg-gold-500 transition-transform duration-300 ease-premium ${
+                  className={`absolute inset-x-2.5 -bottom-0.5 h-px origin-center bg-gold-500 transition-transform duration-300 ease-premium xl:inset-x-3.5 ${
                     isActive(link.href) ? 'scale-x-100' : 'scale-x-0'
+                  }`}
+                  aria-hidden="true"
+                />
+              </Link>
+            </li>
+          ))}
+
+          {sectionLinks.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                onClick={(event) => goToSection(event, link)}
+                aria-current={activeSection === link.id ? 'location' : undefined}
+                className={`relative inline-flex min-h-6 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-2 text-[0.9375rem] font-medium transition-colors duration-200 xl:px-3 ${
+                  activeSection === link.id ? 'text-ink-900' : 'text-ink-500 hover:text-ink-900'
+                }`}
+              >
+                <span aria-hidden="true" className="text-[0.8125rem] leading-none">
+                  {link.emoji}
+                </span>
+                {link.label}
+                <span
+                  className={`absolute inset-x-2.5 -bottom-0.5 h-px origin-center bg-gold-500 transition-transform duration-300 ease-premium xl:inset-x-3 ${
+                    activeSection === link.id ? 'scale-x-100' : 'scale-x-0'
                   }`}
                   aria-hidden="true"
                 />
@@ -177,6 +283,31 @@ export default function Navbar() {
             >
               {link.label}
               {isActive(link.href) && <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
+            </Link>
+          ))}
+
+          {sectionLinks.map((link, i) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={(event) => goToSection(event, link)}
+              aria-current={activeSection === link.id ? 'location' : undefined}
+              style={{ animationDelay: `${(navLinks.length + i) * 40}ms` }}
+              className={`flex animate-fade-up items-center justify-between rounded-lg px-3.5 py-3 text-base font-medium transition-colors duration-200 ${
+                activeSection === link.id
+                  ? 'bg-ink-50 text-ink-900'
+                  : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span aria-hidden="true" className="text-sm leading-none">
+                  {link.emoji}
+                </span>
+                {link.label}
+              </span>
+              {activeSection === link.id && (
+                <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
+              )}
             </Link>
           ))}
 

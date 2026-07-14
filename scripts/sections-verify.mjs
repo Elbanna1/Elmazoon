@@ -8,7 +8,7 @@
 import { chromium, devices } from 'playwright';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:3000';
-const WIDTHS = [320, 360, 375, 390, 412, 430, 768, 1024];
+const WIDTHS = [320, 360, 375, 390, 412, 430, 768, 1024, 1440];
 
 let failures = 0;
 const fail = (msg) => { failures++; console.log(`  FAIL  ${msg}`); };
@@ -83,31 +83,37 @@ console.log('\n[2] content');
 
   const items = await page.locator('#documents ol > li').allInnerTexts();
   const expected = [
-    '١- بطاقة الزوج وثلاث صور منها.',
-    '٢- بطاقة الزوجة وثلاث صور منها.',
-    '٣- بطاقة وكيل الزوجة (الوالد أو الأخ أو العم أو الخال) وصورة منها.',
-    '٤- ٦ صور شخصية لكل من الزوج والزوجة.',
-    '٥- شهادة صحية من مستشفى حكومي أو وحدة طب أسرة.',
-    '٦- إشهاد طلاق رسمي إذا كانت الزوجة مطلقة.',
-    '٧- وثيقة الزواج + شهادة وفاة الزوج إذا كانت الزوجة أرملة.',
-    '٨- أصل شهادة الميلاد للزوج والزوجة.',
+    ['١', 'بطاقة الزوج + ثلاث صور منها.'],
+    ['٢', 'بطاقة الزوجة + ثلاث صور منها.'],
+    ['٣', 'بطاقة وكيل الزوجة (الوالد أو الأخ أو العم أو الخال) + صورة منها.'],
+    ['٤', '٦ صور شخصية لكل من الزوج والزوجة.'],
+    ['٥', 'شهادة صحية من مستشفى حكومي أو وحدة طب أسرة.'],
+    ['٦', 'إشهاد طلاق رسمي إذا كانت الزوجة مطلقة.'],
+    ['٧', 'وثيقة الزواج + شهادة وفاة الزوج إذا كانت الزوجة أرملة.'],
+    ['٨', 'أصل شهادة الميلاد للزوج والزوجة.'],
   ];
   const got = items.map((t) => t.replace(/\s+/g, ' ').trim());
-  expected.forEach((line, i) => {
-    if (got[i] === line) pass(`doc ${i + 1} exact`);
-    else fail(`doc ${i + 1}\n        expected: ${line}\n        got     : ${got[i]}`);
+  expected.forEach(([n, line], i) => {
+    got[i] === `${n} ${line}` || got[i] === `${line} ${n}`
+      ? pass(`doc ${i + 1} exact (${n})`)
+      : fail(`doc ${i + 1}\n        expected: ${n} + "${line}"\n        got     : ${got[i]}`);
   });
 
   const icons = await page.locator('#documents ol > li svg').count();
   icons === 8 ? pass('8 distinct icons') : fail(`icons=${icons}, expected 8`);
 
-  const note = (await page.locator('#documents p').last().innerText()).trim();
-  note === 'يرجى التأكد من تجهيز جميع المستندات قبل موعد عقد الزواج لتسهيل إنهاء الإجراءات.'
-    ? pass('highlighted note exact')
+  const note = (await page.locator('#documents > div > div > p').last().innerText()).trim();
+  note === 'يرجى التأكد من صحة جميع البيانات وإحضار أصول المستندات المطلوبة يوم عقد الزواج.'
+    ? pass('note card exact')
     : fail(`note: ${note}`);
 
   const heading = (await page.locator('#documents-heading').innerText()).trim();
-  heading === 'الأوراق المطلوبة لإتمام عقد الزواج' ? pass('documents heading') : fail(`heading: ${heading}`);
+  heading === 'المستندات المطلوبة لعقد الزواج' ? pass('documents heading') : fail(`heading: ${heading}`);
+
+  const sub = (await page.locator('#documents-heading + p').innerText()).trim();
+  sub === 'يرجى تجهيز المستندات التالية قبل موعد عقد الزواج لتسهيل إنهاء جميع الإجراءات.'
+    ? pass('subtitle exact')
+    : fail(`subtitle: ${sub}`);
 
   const locHeading = (await page.locator('#location-heading').innerText()).trim();
   locHeading === 'عنوان المكتب' ? pass('location heading') : fail(`heading: ${locHeading}`);
@@ -294,6 +300,144 @@ for (const width of WIDTHS) {
   else if (r.clipped) fail(`${tag} modal content clipped`);
   else if (r.gap <= 24) fail(`${tag} only ${r.gap}px of backdrop — outside-click unreachable`);
   else pass(`${tag} no overflow · backdrop ${r.gap}px · card ${r.scrolls ? 'scrolls internally' : 'fits'}`);
+
+  await context.close();
+}
+
+/* ---------------- 5. navbar ---------------- */
+console.log('\n[5] navbar — desktop + mobile, scroll-spy');
+
+for (const width of [1024, 1280, 1440]) {
+  const context = await browser.newContext({ viewport: { width, height: 900 } });
+  const page = await context.newPage();
+  await page.addInitScript(() => sessionStorage.setItem('almaazoon:welcome-seen', '1'));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+
+  const nav = page.locator('nav[aria-label="التنقل الرئيسي"]');
+  const docs = nav.getByRole('link', { name: /المستندات المطلوبة/ });
+  const loc = nav.getByRole('link', { name: /عنوان المكتب/ });
+
+  const bar = await page.evaluate(() => {
+    const n = document.querySelector('nav[aria-label="التنقل الرئيسي"]');
+    const links = [...n.querySelectorAll('ul a')];
+    const rows = new Set(links.map((a) => Math.round(a.getBoundingClientRect().top)));
+    const last = links[links.length - 1].getBoundingClientRect();
+    const actions = n.lastElementChild.previousElementSibling;
+    return {
+      rows: rows.size,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      collides: last.left < actions.getBoundingClientRect().right - 1,
+      count: links.length,
+    };
+  });
+
+  const tag = `${width}px`;
+  if (!(await docs.isVisible()) || !(await loc.isVisible())) fail(`${tag} section links not visible on desktop`);
+  else if (bar.count !== 7) fail(`${tag} expected 7 desktop links, got ${bar.count}`);
+  else if (bar.rows !== 1) fail(`${tag} nav links wrapped onto ${bar.rows} rows`);
+  else if (bar.overflow) fail(`${tag} navbar causes horizontal overflow`);
+  else pass(`${tag} 7 links on one row · no overflow`);
+
+  await context.close();
+}
+
+/* mobile drawer + scroll-spy */
+{
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.addInitScript(() => sessionStorage.setItem('almaazoon:welcome-seen', '1'));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+
+  await page.getByRole('button', { name: 'فتح القائمة' }).click();
+  const drawer = page.locator('#mobile-menu');
+  const mDocs = drawer.getByRole('link', { name: /المستندات المطلوبة/ });
+  const mLoc = drawer.getByRole('link', { name: /عنوان المكتب/ });
+  (await mDocs.isVisible()) && (await mLoc.isVisible())
+    ? pass('mobile drawer shows both section links')
+    : fail('section links missing from the mobile drawer');
+
+  await mDocs.click();
+  await page.waitForTimeout(1600);
+  (await drawer.isVisible()) === false ? pass('drawer closes on tap') : fail('drawer stayed open');
+  const top = await page.evaluate(() => document.getElementById('documents').getBoundingClientRect().top);
+  Math.abs(top) < 120 ? pass(`mobile tap scrolled #documents into view (top=${Math.round(top)})`) : fail(`top=${Math.round(top)}`);
+  await context.close();
+}
+
+/* scroll-spy: the right link lights up, and only one at a time */
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.addInitScript(() => sessionStorage.setItem('almaazoon:welcome-seen', '1'));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+
+  const current = () =>
+    page.$$eval('nav[aria-label="التنقل الرئيسي"] ul a[aria-current]', (els) =>
+      els.map((e) => `${e.innerText.replace(/\s+/g, ' ').trim()}=${e.getAttribute('aria-current')}`)
+    );
+
+  let cur = await current();
+  cur.length === 1 && cur[0].startsWith('الرئيسية')
+    ? pass('at the top: الرئيسية is the only active link')
+    : fail(`at the top: ${JSON.stringify(cur)}`);
+
+  for (const [id, label] of [['documents', 'المستندات المطلوبة'], ['location', 'عنوان المكتب']]) {
+    await page.evaluate((i) => document.getElementById(i).scrollIntoView(), id);
+    await page.waitForTimeout(800);
+    cur = await current();
+    cur.length === 1 && cur[0].includes(label) && cur[0].endsWith('=location')
+      ? pass(`over #${id}: "${label}" is the only active link`)
+      : fail(`over #${id}: ${JSON.stringify(cur)}`);
+  }
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(700);
+  cur = await current();
+  cur.length === 1 && cur[0].startsWith('الرئيسية')
+    ? pass('scrolling back to the top clears the section highlight')
+    : fail(`back at top: ${JSON.stringify(cur)}`);
+
+  await context.close();
+}
+
+/* ---------------- 6. focus states ---------------- */
+console.log('\n[6] focus states');
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  await page.addInitScript(() => sessionStorage.setItem('almaazoon:welcome-seen', '1'));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+
+  /* The focused element must keep its own border-radius. */
+  const radii = await page.evaluate(() => {
+    // The hero CTA. Explicitly not the skip link, whose classes are `focus:`-
+    // prefixed — it has no radius until it is focused, which is exactly the false
+    // positive this check is looking for.
+    const btn = [...document.querySelectorAll('a')].find(
+      (a) => a.className.includes('bg-ink-900') && !a.className.includes('focus:')
+    );
+    const idle = getComputedStyle(btn).borderRadius;
+    btn.focus();
+    const focused = getComputedStyle(btn).borderRadius;
+    const ring = getComputedStyle(btn).boxShadow;
+    return { idle, focused, hasRing: ring !== 'none' };
+  });
+  radii.idle === radii.focused
+    ? pass(`focused control keeps its radius (${radii.idle})`)
+    : fail(`radius changes on focus: ${radii.idle} → ${radii.focused}`);
+  radii.hasRing ? pass('focus ring still painted') : fail('focus ring lost');
+
+  /* On the dark band the ring offset must not be paper-coloured. */
+  const offset = await page.evaluate(() => {
+    const band = document.querySelector('.on-dark');
+    band.scrollIntoView();
+    const btn = band.querySelector('a');
+    btn.focus();
+    return getComputedStyle(btn).getPropertyValue('--tw-ring-offset-color').trim();
+  });
+  offset.toLowerCase() === '#0b0b0c'
+    ? pass('dark band: ring offset is ink-900 (no white halo)')
+    : fail(`dark band ring offset = "${offset}"`);
 
   await context.close();
 }
